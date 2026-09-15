@@ -1,5 +1,25 @@
 const PLAY_ORIGIN = 'https://play.google.com';
 
+async function fetchOfficialIcon(appUrl) {
+  try {
+    const response = await fetch(`${appUrl}&hl=en&gl=US`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PlayQR/1.0)' }
+    });
+    if (!response.ok) return '';
+
+    let icon = '';
+    const transformed = new HTMLRewriter()
+      .on('meta[property="og:image"]', {
+        element(element) { icon ||= element.getAttribute('content') || ''; }
+      })
+      .transform(response);
+    await transformed.body.pipeTo(new WritableStream());
+    return icon;
+  } catch {
+    return '';
+  }
+}
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
@@ -53,11 +73,12 @@ export default {
       });
     await rewriter.transform(upstream).arrayBuffer();
 
-    const apps = [...found.values()].slice(0, 8).map(app => {
+    const apps = await Promise.all([...found.values()].slice(0, 8).map(async app => {
       const parts = app.text.replace(/\s+/g, ' ').trim().split(/\s{2,}| · /).filter(Boolean);
       const cleanedTitle = (app.title || parts[0] || app.id).replace(/^Install\s+/i, '').trim();
-      return { id: app.id, title: cleanedTitle, developer: parts[1] || '', icon: app.iconScore >= 5 ? app.icon : '', url: app.url };
-    });
+      const officialIcon = await fetchOfficialIcon(app.url);
+      return { id: app.id, title: cleanedTitle, developer: parts[1] || '', icon: officialIcon, url: app.url };
+    }));
     return Response.json({ apps }, { headers });
   }
 };
