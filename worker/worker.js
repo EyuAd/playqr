@@ -28,21 +28,35 @@ export default {
           const appUrl = new URL(href, PLAY_ORIGIN);
           const id = appUrl.searchParams.get('id');
           if (!id || found.has(id)) { current = null; return; }
-          current = { id, title: element.getAttribute('aria-label') || '', developer: '', icon: '', text: '', url: `${PLAY_ORIGIN}/store/apps/details?id=${encodeURIComponent(id)}` };
+          current = { id, title: element.getAttribute('aria-label') || '', developer: '', icon: '', iconScore: -100, text: '', url: `${PLAY_ORIGIN}/store/apps/details?id=${encodeURIComponent(id)}` };
           found.set(id, current);
           element.onEndTag(() => { current = null; });
         },
         text(text) { if (current) current.text += ` ${text.text}`; }
       })
       .on('a[href*="/store/apps/details?id="] img', {
-        element(element) { if (current && !current.icon) current.icon = element.getAttribute('src') || element.getAttribute('data-src') || ''; }
+        element(element) {
+          if (!current) return;
+          const src = element.getAttribute('src') || element.getAttribute('data-src') || '';
+          if (!src) return;
+          let score = 0;
+          if (/play-lh\.googleusercontent\.com/i.test(src)) score += 4;
+          if (/i\.ytimg\.com|youtube\.com/i.test(src)) score -= 20;
+          if (/=s\d+/i.test(src)) score += 7;
+          const dimensions = src.match(/=w(\d+)-h(\d+)/i);
+          if (dimensions) {
+            const ratio = Number(dimensions[1]) / Number(dimensions[2]);
+            score += Math.abs(ratio - 1) < 0.18 ? 8 : -8;
+          }
+          if (score > current.iconScore) { current.icon = src; current.iconScore = score; }
+        }
       });
     await rewriter.transform(upstream).arrayBuffer();
 
     const apps = [...found.values()].slice(0, 8).map(app => {
       const parts = app.text.replace(/\s+/g, ' ').trim().split(/\s{2,}| · /).filter(Boolean);
       const cleanedTitle = (app.title || parts[0] || app.id).replace(/^Install\s+/i, '').trim();
-      return { id: app.id, title: cleanedTitle, developer: parts[1] || '', icon: app.icon, url: app.url };
+      return { id: app.id, title: cleanedTitle, developer: parts[1] || '', icon: app.iconScore >= 5 ? app.icon : '', url: app.url };
     });
     return Response.json({ apps }, { headers });
   }
