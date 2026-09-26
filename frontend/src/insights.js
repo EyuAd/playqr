@@ -5,7 +5,10 @@ import {
   skeleton,
   errorPanel,
   prettyNumber,
+  button,
 } from "./ui.js";
+import { analyticsCSV } from "../../shared/csv.js";
+import { manageLink } from "./link-management.js";
 import { request } from "./api.js";
 export async function analytics(main, code, isCurrent) {
   main.append(
@@ -23,10 +26,30 @@ export async function analytics(main, code, isCurrent) {
     el("option", { value: "all" }, "All time"),
   );
   const content = el("section");
-  main.append(range, content);
+  let exported = null;
+  const download = button("↓ Export CSV", () => {
+    if (!exported) return;
+    const url = URL.createObjectURL(
+      new Blob([analyticsCSV(exported.link, exported.rows, exported.range)], {
+        type: "text/csv;charset=utf-8",
+      }),
+    );
+    el("a", {
+      href: url,
+      download: `playqr-${code}-${exported.range === "all" ? "all-time" : exported.range + "-days"}.csv`,
+    }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  });
+  download.disabled = true;
+  main.append(
+    el("div", { class: "analytics-toolbar" }, range, download),
+    content,
+  );
   let ticket = 0;
   async function load() {
     const seq = ++ticket;
+    exported = null;
+    download.disabled = true;
     content.replaceChildren(skeleton());
     try {
       const data = await request(
@@ -34,6 +57,8 @@ export async function analytics(main, code, isCurrent) {
         { privateAccess: true },
       );
       if (!isCurrent() || seq !== ticket) return;
+      exported = data;
+      download.disabled = false;
       const rows = data.rows,
         total = rows.reduce((n, r) => n + r.count, 0);
       content.replaceChildren(
@@ -56,6 +81,16 @@ export async function analytics(main, code, isCurrent) {
             el("span", { class: "muted" }, "Visits in this period"),
             el("strong", {}, prettyNumber(total)),
           ),
+        ),
+      );
+      content.append(
+        button(
+          "Manage link",
+          () =>
+            manageLink(data.link, () => {
+              location.hash = "dashboard";
+            }),
+          "text-button",
         ),
       );
       if (!total) {

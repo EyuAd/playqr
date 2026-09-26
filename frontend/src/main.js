@@ -2,6 +2,7 @@ import { qrPanel } from "./qr-panel.js";
 import { analytics, privacy } from "./insights.js";
 import "./styles.css";
 import { stepArt } from "./step-art.js";
+import { manageLink } from "./link-management.js";
 import {
   el,
   button,
@@ -939,15 +940,24 @@ async function dashboard(version) {
                 ),
               ),
               el("strong", {}, prettyNumber(l.total)),
-              button(
-                "Copy",
-                guard(() => copy(API + "/a/" + l.code)),
-                "text-button",
-              ),
               el(
-                "a",
-                { href: "#analytics/" + l.code, class: "text-link" },
-                "Insights ↗",
+                "div",
+                { class: "link-actions" },
+                button(
+                  "Copy",
+                  guard(() => copy(API + "/a/" + l.code)),
+                  "text-button",
+                ),
+                el(
+                  "a",
+                  { href: "#analytics/" + l.code, class: "text-link" },
+                  "Insights ↗",
+                ),
+                button(
+                  "Manage",
+                  () => manageLink(l, () => void route()),
+                  "text-button",
+                ),
               ),
             ),
           ),

@@ -64,7 +64,7 @@ export default {
           ? origin
           : allowed,
       Vary: "Origin",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "no-referrer",
@@ -75,7 +75,11 @@ export default {
     if (request.method === "OPTIONS")
       return new Response(null, { headers: cors });
     try {
-      if (!["GET", "POST", "HEAD"].includes(request.method))
+      if (
+        !["GET", "POST", "HEAD", "PATCH", "DELETE"].includes(request.method) ||
+        (["PATCH", "DELETE"].includes(request.method) &&
+          !/^\/links\/[a-f0-9]{16}$/.test(url.pathname))
+      )
         return json({ error: "Method not allowed." }, 405);
       if (
         env.RATE_LIMITER &&
@@ -176,6 +180,53 @@ export default {
       const match = url.pathname.match(
         /^\/(a|links|analytics)\/([a-f0-9]{16})$/,
       );
+      if (
+        match?.[1] === "links" &&
+        ["PATCH", "DELETE"].includes(request.method)
+      ) {
+        const owner = await ownerHash(request),
+          code = match[2];
+        const owned = await env.DB.prepare(
+          "SELECT code FROM links WHERE code = ? AND owner_hash = ?",
+        )
+          .bind(code, owner)
+          .first();
+        if (!owned)
+          return json(
+            { error: "This link was not found in your browser library." },
+            404,
+          );
+        if (request.method === "DELETE") {
+          await env.DB.prepare(
+            "DELETE FROM links WHERE code = ? AND owner_hash = ?",
+          )
+            .bind(code, owner)
+            .run();
+          return json({ revoked: true });
+        }
+        const input = await body(request);
+        if (
+          !input ||
+          typeof input.title !== "string" ||
+          !input.title.trim() ||
+          input.title.trim().length > 80 ||
+          Object.keys(input).some((key) => key !== "title")
+        )
+          return json(
+            { error: "Provide only a title between 1 and 80 characters." },
+            400,
+          );
+        const title = text(input.title, 80);
+        if (!title) return json({ error: "Give this link a title." }, 400);
+        const result = await env.DB.prepare(
+          "UPDATE links SET title = ? WHERE code = ? AND owner_hash = ?",
+        )
+          .bind(title, code, owner)
+          .run();
+        if (!result.meta.changes)
+          return json({ error: "This link is no longer available." }, 404);
+        return json({ code, title });
+      }
       if (match && ["GET", "HEAD"].includes(request.method)) {
         const row = await env.DB.prepare("SELECT * FROM links WHERE code = ?")
           .bind(match[2])

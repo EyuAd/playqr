@@ -26,6 +26,8 @@ The composite daily primary key aggregates repeated visits. An owner/creation in
 | POST `/links`                           | Publish app or collection snapshot       | Bearer key, 16KB body limit, 200 links/key |
 | GET `/library`                          | Recent owned shares and totals           | Bearer key                                 |
 | GET `/links/:code`                      | Public snapshot and current app metadata | Valid random code; no private counts       |
+| PATCH `/links/:code`                    | Rename a published link (1–80 characters) | Owner-filtered SQL; destination immutable |
+| DELETE `/links/:code`                   | Revoke link and cascade-delete aggregates | Owner-filtered SQL; UI confirmation       |
 | GET `/a/:code`                          | Device-aware 302, eligible visit count   | No arbitrary redirect destination          |
 | GET `/analytics/:code?range=7\|30\|all` | Aggregate scan data                      | Owner key comparison                       |
 
@@ -40,7 +42,7 @@ All external metadata enters DOM text nodes. Allowed image hosts are restricted.
 ## Honest limitations
 
 - Google Play has no public general-purpose app search API used here. Public HTML/JSON-LD may change, throttle, or differ by country. Results use US/English listings. A metadata provider is the scaling path.
-- No accounts, synchronization, lost-key recovery, link deletion UI, or automatic retention purge yet. Do not publish confidential collection descriptions.
+- No accounts, synchronization, lost-key recovery, or automatic retention purge yet. Owners can revoke links and delete their aggregates from the management dialog. Do not publish confidential collection descriptions.
 - Browser-side offline support covers already loaded/saved data. It is not an installable offline PWA and does not promise cold offline startup.
 - Counts are approximate visits, not unique users. Privacy preferences, bots, rate limiting, and failed writes affect totals.
 - A key-per-browser quota is not a defense against distributed deliberate abuse. Production growth needs stronger publication controls, monitoring, and budget alerts.

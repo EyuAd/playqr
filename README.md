@@ -107,7 +107,7 @@ See [deployment guide](docs/deployment.md) for database setup, verification, pub
 ## Roadmap
 
 - Account-backed optional sync and management-key recovery.
-- Owner-controlled link deletion and configurable aggregate retention.
+- Configurable automatic aggregate retention (owner-controlled link revocation is available).
 - Licensed/contracted app-metadata provider if usage outgrows public-page extraction.
 - Automated accessibility audits, wider browser coverage, and service-level monitoring.
 - Signed release previews and automated deployment once repository deployment permissions are configured.

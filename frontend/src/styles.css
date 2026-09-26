@@ -952,6 +952,37 @@ textarea {
 .danger-text {
   color: var(--error);
 }
+.analytics-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0 24px;
+}
+.revoke-panel {
+  border-top: 1px solid var(--line);
+  margin-top: 28px;
+  padding-top: 12px;
+}
+.dialog .confirm-revoke {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+.confirm-revoke input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 3px 0 0;
+}
+.link-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
 .danger-button {
   background: #a43636;
   color: white;
@@ -1053,8 +1084,12 @@ textarea {
   min-width: 0;
   flex: 1;
 }
-.collection-row > .collection-order { flex: 0 0 auto; }
-.collection-order .icon-button { margin-left: 0; }
+.collection-row > .collection-order {
+  flex: 0 0 auto;
+}
+.collection-order .icon-button {
+  margin-left: 0;
+}
 .collection-row strong {
   overflow-wrap: anywhere;
 }

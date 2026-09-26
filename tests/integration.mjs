@@ -58,6 +58,67 @@ assert.equal(data.rows[0].device, "Android");
 const library = await (await fetch(api + "/library", { headers })).json();
 assert.equal(library.links.length, 1);
 assert.equal(library.links[0].owner_hash, undefined);
+for (const method of ["PATCH", "DELETE"]) {
+  assert.equal(
+    (await fetch(api + "/links/" + link.code, { method })).status,
+    401,
+  );
+  assert.equal(
+    (
+      await fetch(api + "/links/" + link.code, {
+        method,
+        headers: { Authorization: "Bearer " + "b".repeat(64) },
+      })
+    ).status,
+    404,
+  );
+}
+for (const input of [
+  { title: "" },
+  { title: "x".repeat(81) },
+  { title: "Valid", ids: ["evil.app"] },
+]) {
+  assert.equal(
+    (
+      await fetch(api + "/links/" + link.code, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(input),
+      })
+    ).status,
+    400,
+  );
+}
+assert.equal(
+  (
+    await fetch(api + "/links/" + link.code, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ title: "Renamed collection" }),
+    })
+  ).status,
+  200,
+);
+data = await (
+  await fetch(api + "/analytics/" + link.code + "?range=all", { headers })
+).json();
+assert.equal(data.link.title, "Renamed collection");
+assert.equal(data.link.total, 1);
+assert.equal(
+  (await fetch(api + "/links/" + link.code, { method: "DELETE", headers }))
+    .status,
+  200,
+);
+assert.equal((await fetch(link.url, { redirect: "manual" })).status, 404);
+assert.equal((await fetch(api + "/links/" + link.code)).status, 404);
+assert.equal(
+  (await (await fetch(api + "/library", { headers })).json()).links.length,
+  0,
+);
+console.log(
+  "PASS: owner-only rename/revoke, validation, unchanged counts, revoked destinations; code=" +
+    link.code,
+);
 console.log(
   "PASS: real D1 publication, owner isolation, redirects, privacy opt-outs, daily aggregates, library",
 );
