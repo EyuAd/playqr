@@ -514,6 +514,16 @@ footer {
 footer a:hover {
   text-decoration: underline;
 }
+.author-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+  color: var(--ink);
+}
+.github-logo {
+  flex-shrink: 0;
+}
 .page-heading {
   padding: 60px 0 25px;
   max-width: 780px;
