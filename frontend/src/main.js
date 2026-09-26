@@ -20,6 +20,7 @@ import {
 import { state, save, remember, favorite } from "./storage.js";
 import { search, appDetails, publish, request, API } from "./api.js";
 import { parsePlayUrl, validId, playUrl } from "../../shared/domain.js";
+import { reorderApps, duplicateCollection } from "../../shared/collections.js";
 
 const main = document.querySelector("#main");
 let routeVersion = 0,
@@ -472,8 +473,11 @@ async function details(id, version) {
         ),
       ),
     );
-    const panel = await qrPanel(app.title, playUrl(app.id), () =>
-      publish({ kind: "app", id: app.id }),
+    const panel = await qrPanel(
+      app.title,
+      playUrl(app.id),
+      () => publish({ kind: "app", id: app.id }),
+      { apps: [app], kind: "app" },
     );
     if (version !== routeVersion) return;
     main.append(el("div", { class: "detail-layout" }, info, panel));
@@ -579,16 +583,52 @@ function editCollection(id) {
   const list = el("div", { class: "collection-apps" });
   const redraw = () => {
     list.replaceChildren(
-      ...c.apps.map((a) =>
+      ...c.apps.map((a, index) =>
         el(
           "div",
           { class: "collection-row" },
           icon(a),
           el(
             "div",
-            {},
+            { class: "collection-app-label" },
             el("strong", {}, a.title),
             el("p", { class: "muted" }, a.developer),
+          ),
+          el(
+            "div",
+            { class: "collection-order" },
+            ...[-1, 1].map((direction) => {
+              const move = button(
+                direction === -1 ? "↑" : "↓",
+                () => {
+                  const previous = c.apps;
+                  c.apps = reorderApps(c.apps, index, direction);
+                  if (!save()) {
+                    c.apps = previous;
+                    toast(
+                      "Could not save the new order. Browser storage may be full.",
+                    );
+                    return;
+                  }
+                  redraw();
+                  toast(`${a.title} moved ${direction === -1 ? "up" : "down"}`);
+                  const movedRow = list
+                    .querySelectorAll(".collection-row")
+                    .item(index + direction);
+                  movedRow
+                    ?.querySelector(".collection-order button:not(:disabled)")
+                    ?.focus();
+                },
+                "icon-button",
+              );
+              move.setAttribute(
+                "aria-label",
+                `Move ${a.title} ${direction === -1 ? "up" : "down"}`,
+              );
+              move.disabled =
+                index + direction < 0 || index + direction >= c.apps.length;
+              return move;
+            }),
           ),
           button(
             "Remove",
@@ -621,6 +661,72 @@ function editCollection(id) {
   main.append(
     el("a", { href: "#collections", class: "back-link" }, "← All collections"),
     heading("COLLECTION EDITOR", "Make it your own."),
+    el(
+      "div",
+      { class: "collection-management" },
+      button("Duplicate collection", () => {
+        if (state.collections.length >= 100) {
+          toast("Your browser can hold up to 100 collection drafts.");
+          return;
+        }
+        const duplicate = duplicateCollection(c, crypto.randomUUID());
+        state.collections.push(duplicate);
+        if (!save()) {
+          state.collections.pop();
+          toast("Could not save the copy. Browser storage may be full.");
+          return;
+        }
+        updateCounts();
+        location.hash = "collection/" + duplicate.id;
+        toast("Collection duplicated");
+      }),
+      button(
+        "Delete draft",
+        () => {
+          const dialog = el("dialog", {
+            class: "dialog",
+            "aria-labelledby": "delete-draft-title",
+          });
+          dialog.append(
+            el("h2", { id: "delete-draft-title" }, "Delete this draft?"),
+            el(
+              "p",
+              {},
+              `“${c.title}” will be removed from this browser. Published links remain available. This cannot be undone.`,
+            ),
+            el(
+              "div",
+              { class: "detail-actions" },
+              button("Cancel", () => dialog.close()),
+              button(
+                "Delete draft",
+                () => {
+                  const previous = state.collections;
+                  state.collections = previous.filter(
+                    (item) => item.id !== c.id,
+                  );
+                  if (!save()) {
+                    state.collections = previous;
+                    toast("Could not delete the draft. Please try again.");
+                    return;
+                  }
+                  dialog.close();
+                  updateCounts();
+                  location.hash = "collections";
+                  toast("Draft deleted. Published links were not changed.");
+                },
+                "button danger-button",
+              ),
+            ),
+          );
+          document.body.append(dialog);
+          dialog.addEventListener("close", () => dialog.remove());
+          dialog.showModal();
+          dialog.querySelector("button").focus();
+        },
+        "text-button danger-text",
+      ),
+    ),
     el("div", { class: "collection-editor" }, title, description),
     list,
     el(
@@ -669,7 +775,10 @@ async function shared(code, version) {
         data.link.description,
       ),
     );
-    const panel = await qrPanel(data.link.title, API + "/a/" + code);
+    const panel = await qrPanel(data.link.title, API + "/a/" + code, null, {
+      apps: data.apps,
+      kind: data.link.kind,
+    });
     if (version !== routeVersion) return;
     const content = el(
       "section",

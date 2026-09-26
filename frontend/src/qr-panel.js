@@ -1,5 +1,5 @@
 import { el, button, copy, share, guard } from "./ui.js";
-export async function qrPanel(title, initialUrl, makeSmart) {
+export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
   const panel = el(
     "section",
     { class: "qr-panel" },
@@ -67,6 +67,26 @@ export async function qrPanel(title, initialUrl, makeSmart) {
     ),
   );
   panel.append(qrStage, caption, controls, downloads, link, error);
+  panel.append(
+    button(
+      "Create share card ↗",
+      guard(async () => {
+        const { openShareCard } = await import("./share-card.js");
+        await openShareCard({
+          title,
+          url: destination,
+          settings: { ...settings },
+          ...card,
+        });
+      }),
+      "button share-card-button",
+    ),
+    el(
+      "p",
+      { class: "small-note" },
+      "App artwork, a scan-ready QR, and a little PlayQR polish.",
+    ),
+  );
   if (makeSmart) {
     const smart = button(
       "Create smart link",
