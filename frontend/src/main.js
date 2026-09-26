@@ -1,6 +1,7 @@
 import { qrPanel } from "./qr-panel.js";
 import { analytics, privacy } from "./insights.js";
 import "./styles.css";
+import { stepArt } from "./step-art.js";
 import {
   el,
   button,
@@ -380,10 +381,11 @@ function discover() {
           "Share something good",
           "One app or a whole collection. Ready for any screen.",
         ],
-      ].map(([n, t, d]) =>
+      ].map(([n, t, d], index) =>
         el(
           "div",
-          {},
+          { class: "how-step" },
+          stepArt(index),
           el("span", { class: "step-number" }, n),
           el("h3", {}, t),
           el("p", {}, d),
