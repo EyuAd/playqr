@@ -1,0 +1,32 @@
+{
+  "name": "playqr",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/*.test.js",
+    "lint": "eslint frontend/src shared worker tests",
+    "format": "prettier --write frontend shared worker tests README.md docs",
+    "worker:dev": "wrangler dev --config worker/wrangler.local.jsonc",
+    "worker:build": "wrangler deploy --dry-run --config worker/wrangler.jsonc --outdir worker-build",
+    "worker:deploy": "wrangler deploy --config worker/wrangler.jsonc"
+  },
+  "dependencies": {
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "vite": "^6.4.0",
+    "wrangler": "^4.0.0",
+    "eslint": "^9.0.0",
+    "@eslint/js": "^9.0.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.0.0",
+    "@cloudflare/workers-types": "^5.20260925.1",
+    "@playwright/test": "^1.55.0",
+    "jsqr": "^1.4.0"
+  }
+}
+

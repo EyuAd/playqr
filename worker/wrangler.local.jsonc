@@ -1,14 +1,16 @@
 {
-  "name": "playqr-search",
+  "name": "playqr-local",
   "main": "worker.js",
   "compatibility_date": "2026-09-15",
-  "account_id": "6fe2a3ef515639971bce757dd99793a6",
-  "vars": { "FRONTEND_URL": "https://eyuad.github.io/playqr/" },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "FRONTEND_URL": "http://127.0.0.1:5173/",
+  },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "playqr-sharing",
-      "database_id": "7e1d4834-00f9-48f7-8559-4f491b87ecba",
+      "database_id": "local-playqr",
       "migrations_dir": "migrations",
     },
   ],
