@@ -114,5 +114,5 @@ See [deployment guide](docs/deployment.md) for database setup, verification, pub
 
 ## Author
 
-Built by [Euael Adane](https://github.com/EyuAd). PlayQR is independent of Google and is not affiliated with Google Play or the apps it lists.
+[Euael Adane](https://github.com/EyuAd). PlayQR is independent of Google and is not affiliated with Google Play or the apps it lists.
 
