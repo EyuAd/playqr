@@ -2,7 +2,7 @@
 
 Find Android apps from any device. Share a direct Google Play QR code, a device-aware link, or an entire collection.
 
-[Live demo](https://eyuad.github.io/playqr/) · [Author](https://github.com/EyuAd) · [Architecture](docs/architecture.md)
+[Live demo](https://eyuad.github.io/playqr/) · [Architecture](docs/architecture.md)
 
 ![PlayQR desktop search experience](docs/desktop.png)
 
@@ -112,7 +112,5 @@ See [deployment guide](docs/deployment.md) for database setup, verification, pub
 - Automated accessibility audits, wider browser coverage, and service-level monitoring.
 - Signed release previews and automated deployment once repository deployment permissions are configured.
 
-## Author
-
-[Euael Adane](https://github.com/EyuAd). PlayQR is independent of Google and is not affiliated with Google Play or the apps it lists.
+PlayQR is independent of Google and is not affiliated with Google Play or the apps it lists.
 
