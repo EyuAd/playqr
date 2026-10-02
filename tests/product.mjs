@@ -33,7 +33,7 @@ try {
             recent: [app],
             collections: [
               {
-                id: "test-draft",
+                id: "11111111-1111-4111-8111-111111111111",
                 title: "My Android setup",
                 description: "A local test draft",
                 apps: [app, notes],
@@ -47,7 +47,8 @@ try {
   );
   await page.goto(
     (process.env.PLAYQR_TEST_URL || "http://127.0.0.1:5173/") +
-      "#collection/test-draft",
+      "#collection/11111111-1111-4111-8111-111111111111",
+    { waitUntil: "domcontentloaded" },
   );
   await page
     .getByRole("button", {
@@ -59,13 +60,15 @@ try {
     await page.locator(".collection-row").first().innerText(),
     /Notes test fixture/,
   );
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
   assert.match(
     await page.locator(".collection-row").first().innerText(),
     /Notes test fixture/,
   );
   await page.getByRole("button", { name: "Duplicate collection" }).click();
-  await page.waitForFunction(() => location.hash !== "#collection/test-draft");
+  await page.waitForFunction(
+    () => location.hash !== "#collection/11111111-1111-4111-8111-111111111111",
+  );
   assert.equal(
     await page
       .getByRole("textbox", { name: "Collection title", exact: true })
@@ -80,11 +83,13 @@ try {
     .getByRole("dialog")
     .getByRole("button", { name: "Delete draft", exact: true })
     .click();
-  await page.waitForURL("**/#collections");
+  await page.waitForFunction(() => location.hash === "#collections");
+  await page.locator(".collection-card").first().waitFor();
   assert.equal(await page.locator(".collection-card").count(), 1);
   await page.goto(
     (process.env.PLAYQR_TEST_URL || "http://127.0.0.1:5173/") +
       "#app/com.spotify.music",
+    { waitUntil: "domcontentloaded" },
   );
   await page.getByRole("button", { name: "Create share card" }).click();
   const download = page.getByRole("button", { name: "Download card" });

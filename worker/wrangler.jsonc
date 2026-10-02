@@ -4,8 +4,8 @@
   "compatibility_date": "2026-09-15",
   "account_id": "6fe2a3ef515639971bce757dd99793a6",
   "vars": {
-    "FRONTEND_URL": "https://eyuad.github.io/playqr/",
-    "ADDITIONAL_FRONTEND_ORIGINS": "https://eyubuilds.tech,https://www.eyubuilds.tech",
+    "FRONTEND_URL": "https://eyubuilds.tech/",
+    "ADDITIONAL_FRONTEND_ORIGINS": "https://eyuad.github.io,https://www.eyubuilds.tech",
     "SUPABASE_URL": "https://vsbptzyozoodmsyvvbxe.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_YVmOuUNJkOOcgcpRzR8XIg_gMEKOdBA",
     "AUTH_READY": "false",

@@ -66,7 +66,7 @@ export async function renderShareCard(
   ctx.fillText("PlayQR.", 72, 88);
   ctx.font = "500 19px system-ui";
   ctx.textAlign = "right";
-  ctx.fillText("GOOD APPS TRAVEL", 1008, 84);
+  ctx.fillText("THE APP EXCHANGE", 1008, 84);
   ctx.textAlign = "left";
   const images = await Promise.all(
     apps
@@ -109,7 +109,7 @@ export async function renderShareCard(
     1210,
   );
   ctx.font = "400 22px system-ui";
-  ctx.fillText("Find it. Scan it. Pass it on.", 540, 1254);
+  ctx.fillText("Find an app. Pass it on.", 540, 1254);
   ctx.strokeStyle = options.color;
   ctx.globalAlpha = 0.16;
   ctx.beginPath();

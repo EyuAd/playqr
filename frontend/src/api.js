@@ -29,12 +29,12 @@ export async function search(query, signal, store = "android") {
   const hit = cache.get(key);
   if (hit && Date.now() - hit.time < 300000) return hit.value;
   const value = await request(
-    "/search?v=4&store=" + store + "&q=" + encodeURIComponent(query),
+    "/search?v=5&store=" + store + "&q=" + encodeURIComponent(query),
     {
       signal,
     },
   );
-  cache.set(key, { value, time: Date.now() });
+  if (!value.warning) cache.set(key, { value, time: Date.now() });
   if (cache.size > 30) cache.delete(cache.keys().next().value);
   return value;
 }

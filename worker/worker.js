@@ -139,7 +139,10 @@ export default {
           ),
           warning: results.some((r) => r.status === "rejected")
             ? "One store is temporarily unavailable. Showing results from the other store."
-            : null,
+            : results
+                .map((r) => r.value?.warning)
+                .filter(Boolean)
+                .join(" ") || null,
         });
       }
       if (url.pathname === "/app" && request.method === "GET") {

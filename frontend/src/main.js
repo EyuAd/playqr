@@ -1,7 +1,9 @@
 import { qrPanel } from "./qr-panel.js";
 import { analytics, privacy } from "./insights.js";
 import "./styles.css";
-import { stepArt } from "./step-art.js";
+import { symbol } from "./symbols.js";
+import { appPassport } from "./passport.js";
+import { backupPanel } from "./backup.js";
 import { manageLink } from "./link-management.js";
 import {
   el,
@@ -36,6 +38,7 @@ import { accountPage, profilePage } from "./account.js";
 import { reorderApps, duplicateCollection } from "../../shared/collections.js";
 
 const main = document.querySelector("#main");
+const discoveryState = { query: "", store: "all" };
 let routeVersion = 0,
   ready = false,
   currentRequest,
@@ -162,51 +165,21 @@ function discover() {
       el(
         "p",
         { class: "eyebrow" },
-        el("span", { class: "live-dot" }),
-        "FOR EVERY APP. EVERY DEVICE.",
+        el("span", { class: "edition" }, "P / Q"),
+        "GOOD FINDS. ZERO FRICTION.",
       ),
-      el(
-        "h1",
-        {},
-        "Good apps",
-        el("br"),
-        "travel.",
-        el("span", { class: "hero-arrow", "aria-hidden": "true" }, "↗"),
-      ),
+      el("h1", {}, "Find an app.", el("br"), el("em", {}, "Pass it on.")),
       el(
         "p",
         { class: "lede" },
-        "Discover Android and iPhone apps. Share your favorites.",
-        el("br"),
-        "One search. One scan. You’re there.",
+        "Search Google Play or the App Store—even from your iPhone. Turn the exact app into a QR code, ready for the next screen.",
       ),
     ),
   );
-  const art = el(
-    "div",
-    { class: "hero-art", "aria-hidden": "true" },
-    el("div", { class: "orbit orbit-one" }),
-    el("div", { class: "orbit orbit-two" }),
-    el(
-      "div",
-      { class: "art-note" },
-      "A little square.",
-      el("br"),
-      "A world of apps.",
-    ),
-    el(
-      "div",
-      { class: "art-qr" },
-      Array.from({ length: 81 }, (_, i) =>
-        el("i", { class: (i * 13 + i * i) % 7 < 4 ? "ink" : "" }),
-      ),
-    ),
-    el("span", { class: "art-caption" }, "FIND IT. SCAN IT. PASS IT ON."),
-  );
-  hero.append(art);
+  hero.append(appPassport());
   const input = el("input", {
     type: "search",
-    placeholder: "Search an app or paste its store link",
+    placeholder: "App name or store link…",
     maxlength: 2048,
     "aria-label": "App name or store URL",
     autocomplete: "off",
@@ -221,14 +194,14 @@ function discover() {
   const form = el(
     "form",
     { class: "search-form" },
-    el("span", { class: "search-symbol", "aria-hidden": "true" }, "⌕"),
+    symbol("search", "symbol search-symbol"),
     input,
     submit,
   );
   const status = el(
     "p",
     { class: "search-status", role: "status", "aria-live": "polite" },
-    "Search Google Play and the App Store from any device. US listings.",
+    "US store listings · No account needed",
   );
   const store = el(
     "select",
@@ -238,6 +211,7 @@ function discover() {
     el("option", { value: "ios" }, "App Store · iPhone"),
   );
   store.addEventListener("change", () => {
+    discoveryState.store = store.value;
     if (input.value.trim().length >= 2) void run();
   });
   const results = el("section", {
@@ -247,7 +221,7 @@ function discover() {
   const suggestions = el(
     "div",
     { class: "suggestions" },
-    el("span", {}, "Try an app"),
+    el("span", {}, "TRY"),
     ["Spotify", "Notion", "WhatsApp", "TakeCare by Marriott"].map((q) =>
       button(
         q,
@@ -281,13 +255,19 @@ function discover() {
     const ticket = ++sequence,
       route = routeVersion,
       q = input.value.trim();
+    discoveryState.query = input.value;
+    discoveryState.store = store.value;
+    hero.classList.toggle("search-active", q.length >= 2);
     if (q.length < 2) {
       results.replaceChildren();
+      results.removeAttribute("aria-busy");
       status.textContent = "Enter at least two characters.";
       return;
     }
     const direct = parseStoreUrl(q);
     if (!direct && (/https?:|play\.google|:\/\//i.test(q) || q.length > 120)) {
+      results.replaceChildren();
+      results.removeAttribute("aria-busy");
       status.textContent =
         "Paste a direct Google Play or apps.apple.com app listing link.";
       return;
@@ -344,11 +324,14 @@ function discover() {
     void run();
   });
   input.addEventListener("input", () => {
+    discoveryState.query = input.value;
     currentRequest?.abort();
     sequence++;
     clearTimeout(debounce);
     submit.disabled = false;
+    results.removeAttribute("aria-busy");
     if (input.value.trim().length < 2) {
+      hero.classList.remove("search-active");
       results.replaceChildren();
       status.textContent = "Enter an app name or paste its store link.";
       return;
@@ -375,28 +358,25 @@ function discover() {
       ].focus();
     }
   });
-  main.append(
-    hero,
-    el(
-      "section",
-      { class: "search-area" },
+  hero
+    .querySelector(".hero-copy")
+    .append(
       el(
-        "div",
-        { class: "store-toolbar" },
-        el("label", {}, "Look in", store),
+        "section",
+        { class: "search-station", "aria-label": "Find an app" },
         el(
-          "span",
-          { class: "small-note" },
-          "Original listings. Original icons.",
+          "div",
+          { class: "store-toolbar" },
+          el("label", {}, "Look in", store),
+          el("span", { class: "small-note" }, "Press / to search"),
         ),
+        form,
+        status,
+        suggestions,
+        recent,
       ),
-      form,
-      status,
-      suggestions,
-      recent,
-      results,
-    ),
-  );
+    );
+  main.append(hero, el("section", { class: "search-area" }, results));
   if (state.recent.length)
     main.append(
       el(
@@ -410,35 +390,64 @@ function discover() {
   main.append(
     el(
       "section",
-      { class: "how" },
+      { class: "how", "aria-label": "What you can do with PlayQR" },
       [
         [
           "01",
-          "Find your next favorite",
-          "Real Android and iPhone apps, with the details that matter.",
+          "Straight to the app.",
+          "Choose the exact listing. Your QR opens that app—not a page of search results.",
         ],
         [
           "02",
-          "Make the connection",
-          "Create a QR code or a link that knows where to go.",
+          "A collection worth keeping.",
+          "Build a new-phone setup, add your notes, and share the whole collection in one go.",
         ],
         [
           "03",
-          "Share something good",
-          "One app or a whole collection. Ready for any screen.",
+          "Share it. Follow it.",
+          "Pair Android and iPhone listings, then see where your smart links go.",
         ],
       ].map(([n, t, d], index) =>
         el(
           "div",
           { class: "how-step" },
-          stepArt(index),
-          el("span", { class: "step-number" }, n),
+          el(
+            "div",
+            { class: "step-top" },
+            el("span", { class: "step-number" }, n),
+            symbol(["scan", "stack", "link"][index]),
+          ),
           el("h3", {}, t),
           el("p", {}, d),
+          el(
+            "a",
+            {
+              class: "text-link",
+              href: ["#discover", "#collections", "#dashboard"][index],
+              ...(index === 0
+                ? {
+                    onclick: () => {
+                      input.focus();
+                      input.scrollIntoView({
+                        block: "center",
+                        behavior: "smooth",
+                      });
+                    },
+                  }
+                : {}),
+            },
+            ["Find an app", "Build a collection", "Open your library"][index],
+            symbol("arrow"),
+          ),
         ),
       ),
     ),
   );
+  if (discoveryState.query.trim().length >= 2) {
+    input.value = discoveryState.query;
+    store.value = discoveryState.store;
+    void run();
+  }
 }
 async function details(id, version) {
   if (!validAppId(id)) {
@@ -549,8 +558,8 @@ async function details(id, version) {
 function collections() {
   main.append(
     heading(
-      "YOUR CURATED CORNER",
-      "Better together.",
+      "YOUR APP COLLECTIONS",
+      "A setup worth sharing.",
       "Build an app collection for a new phone, a team, or a little inspiration.",
     ),
   );
@@ -1006,8 +1015,10 @@ async function dashboard(version) {
   main.append(
     heading(
       "YOUR LIBRARY",
-      "The good stuff, saved.",
-      "Your favorites, recent apps, and shared links. Personal to this browser.",
+      "Keep the good finds.",
+      session
+        ? "Your saved apps, collections, and private link insights."
+        : "Your saved apps and private link insights. Stored in this browser.",
     ),
   );
   const saved = el(
@@ -1021,6 +1032,7 @@ async function dashboard(version) {
           "Tap Save on any app to find it here.",
         ),
   );
+  if (!session) main.append(backupPanel(() => void route()));
   main.append(saved);
   if (state.recent.length)
     main.append(
@@ -1176,9 +1188,19 @@ async function route() {
   clearTimeout(debounce);
   main.replaceChildren();
   const [name = "discover", id = ""] = location.hash.slice(1).split("/");
+  main.dataset.page = name || "discover";
+  const active =
+    {
+      app: "discover",
+      collection: "collections",
+      analytics: "dashboard",
+      profile: "account",
+    }[name] ||
+    name ||
+    "discover";
   document.querySelectorAll("nav a").forEach((a) => {
     a.removeAttribute("aria-current");
-    if (a.hash === "#" + name) a.setAttribute("aria-current", "page");
+    if (a.hash === "#" + active) a.setAttribute("aria-current", "page");
   });
   updateCounts();
   window.scrollTo(0, 0);
@@ -1214,6 +1236,15 @@ function theme() {
       "aria-label",
       `Switch to ${document.documentElement.dataset.theme === "dark" ? "light" : "dark"} mode`,
     );
+  document
+    .querySelector("#theme")
+    .replaceChildren(
+      symbol(
+        document.documentElement.dataset.theme === "dark" ? "sun" : "moon",
+      ),
+    );
+  document.querySelector('meta[name="theme-color"]').content =
+    document.documentElement.dataset.theme === "dark" ? "#17191d" : "#f6f4ee";
 }
 theme();
 prefersDark.addEventListener("change", theme);
@@ -1232,6 +1263,22 @@ document.querySelector(".skip").addEventListener("click", (event) => {
 });
 window.addEventListener("online", connectivity);
 window.addEventListener("offline", connectivity);
+window.addEventListener("keydown", (event) => {
+  if (
+    event.key !== "/" ||
+    event.ctrlKey ||
+    event.altKey ||
+    event.metaKey ||
+    event.shiftKey ||
+    event.target.closest("input, textarea, select, [contenteditable], dialog")
+  )
+    return;
+  const input = document.querySelector("#app-search");
+  if (input) {
+    event.preventDefault();
+    input.focus();
+  }
+});
 connectivity();
 window.addEventListener("hashchange", () => {
   if (ready) void route();

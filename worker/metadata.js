@@ -113,7 +113,7 @@ export async function getApp(id) {
 }
 export async function searchApps(query) {
   const key = new Request(
-    `https://playqr-cache.invalid/search/v4?q=${encodeURIComponent(query.toLowerCase())}`,
+    `https://playqr-cache.invalid/search/v5?q=${encodeURIComponent(query.toLowerCase())}`,
   );
   const cached = await caches.default.match(key);
   if (cached) return cached.json();
@@ -144,23 +144,40 @@ export async function searchApps(query) {
       })
       .transform(response),
   );
-  const apps = [],
+  const settled = [],
     list = [...ids];
   for (let i = 0; i < list.length; i += 6) {
     const results = await Promise.allSettled(list.slice(i, i + 6).map(getApp));
-    for (const r of results) if (r.status === "fulfilled") apps.push(r.value);
+    settled.push(...results);
   }
-  if (ids.size && !apps.length)
+  const result = searchResult(settled);
+  if (ids.size && !result.apps.length)
     throw Object.assign(
       new Error("App details could not be loaded. Please retry."),
       { status: 502 },
     );
-  const result = { apps };
-  await caches.default.put(
-    key,
-    Response.json(result, {
-      headers: { "Cache-Control": "public, max-age=300" },
-    }),
-  );
+  // A transient metadata failure must not hide the best match for five minutes.
+  if (!result.warning)
+    await caches.default.put(
+      key,
+      Response.json(result, {
+        headers: { "Cache-Control": "public, max-age=300" },
+      }),
+    );
   return result;
+}
+
+export function searchResult(settled) {
+  const apps = settled
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => r.value);
+  return {
+    apps,
+    ...(settled.some((r) => r.status === "rejected")
+      ? {
+          warning:
+            "Some Google Play listings could not load. Search again to retry missing results.",
+        }
+      : {}),
+  };
 }

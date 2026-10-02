@@ -6,12 +6,12 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
     el(
       "div",
       { class: "section-heading" },
-      el("strong", {}, "Ready to travel"),
+      el("strong", {}, "Your app, one scan away."),
       el("span", { class: "badge" }, "QR CODE"),
     ),
   );
   let destination = initialUrl,
-    settings = { color: "#142e25", size: 1024, background: "white" };
+    settings = { color: "#121826", size: 1024, background: "white" };
   const canvas = el("canvas", {
       "aria-label": `QR code for ${title}`,
       role: "img",
@@ -84,7 +84,7 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
     el(
       "p",
       { class: "small-note" },
-      "App artwork, a scan-ready QR, and a little PlayQR polish.",
+      "A printable card with original app artwork and your QR.",
     ),
   );
   if (makeSmart) {
@@ -119,9 +119,9 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
   const color = el(
     "select",
     { "aria-label": "QR foreground" },
-    el("option", { value: "#142e25" }, "Forest"),
     el("option", { value: "#121826" }, "Ink"),
     el("option", { value: "#173e82" }, "Cobalt"),
+    el("option", { value: "#142e25" }, "Forest"),
   );
   const size = el(
     "select",
@@ -150,7 +150,7 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
     button(
       "Reset",
       () => {
-        settings = { color: "#142e25", size: 1024, background: "white" };
+        settings = { color: "#121826", size: 1024, background: "white" };
         color.value = settings.color;
         bg.value = settings.background;
         size.value = "1024";

@@ -13,7 +13,9 @@ page.on("response", (r) => {
 });
 try {
   await page.goto("http://127.0.0.1:5173/");
-  await page.getByRole("heading", { name: "Good apps travel." }).waitFor();
+  await page
+    .getByRole("heading", { name: "Find an app. Pass it on." })
+    .waitFor();
   await page.screenshot({ path: "docs/desktop.png", fullPage: true });
   await page.getByRole("searchbox").fill("Spotify");
   await page.getByRole("button", { name: "Find app" }).click();
@@ -101,4 +103,3 @@ try {
 } finally {
   await browser.close();
 }
-
