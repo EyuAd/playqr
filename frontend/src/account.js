@@ -4,6 +4,27 @@ import { syncStatus, flush, initializeWorkspace } from "./sync.js";
 import { request } from "./api.js";
 import { state, save, ownerKey, guestLibrary } from "./storage.js";
 import { collectionCover } from "./collection-design.js";
+function guestOption() {
+  return el(
+    "div",
+    { class: "guest-option" },
+    el("p", { class: "guest-option-label" }, "No account? No problem."),
+    el(
+      "a",
+      {
+        href: "#discover",
+        class: "button secondary",
+        "aria-describedby": "guest-option-note",
+      },
+      "Continue as guest",
+    ),
+    el(
+      "p",
+      { id: "guest-option-note", class: "small-note" },
+      "Search, save apps and build collections without signing in. Favorites and drafts stay in this browser, not across devices. Sign in later to import them into your account.",
+    ),
+  );
+}
 export async function accountPage(main, isCurrent, refresh) {
   main.append(
     heading(
@@ -14,15 +35,17 @@ export async function accountPage(main, isCurrent, refresh) {
   );
   if (!auth) {
     main.append(
-      empty(
-        "Sign-in setup is in progress",
-        authError ||
-          "Google and email sign-in will appear here once the authentication service is connected. You can still search, save and share using your browser library.",
+      el(
+        "section",
+        { class: "account-panel" },
+        el("h2", {}, "Sign-in setup is in progress"),
         el(
-          "a",
-          { href: "#discover", class: "button primary" },
-          "Keep exploring",
+          "p",
+          { class: "small-note" },
+          authError ||
+            "Google and email sign-in will be available soon. You can use PlayQR as a guest right now.",
         ),
+        guestOption(),
       ),
     );
     return;
@@ -87,6 +110,7 @@ export async function accountPage(main, isCurrent, refresh) {
           "Or use a secure email link. No password to remember.",
         ),
         form,
+        guestOption(),
       ),
     );
     return;

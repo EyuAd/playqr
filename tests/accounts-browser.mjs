@@ -153,10 +153,20 @@ try {
     .getByRole("heading", { name: "Local conflicting edit", exact: true })
     .waitFor();
   await first.getByRole("link", { name: "Account", exact: true }).click();
+  assert.equal(
+    await first
+      .getByRole("link", { name: "Continue as guest", exact: true })
+      .count(),
+    0,
+  );
   await first.getByRole("button", { name: "Sign out", exact: true }).click();
   await first
     .getByRole("button", { name: "Continue with Google", exact: true })
     .waitFor();
+  await first
+    .getByRole("link", { name: "Continue as guest", exact: true })
+    .click();
+  await first.waitForURL("**/#discover");
   await first.getByRole("link", { name: "Your library", exact: true }).click();
   await first.getByText("Guest-only favorite", { exact: true }).waitFor();
   assert.equal(
