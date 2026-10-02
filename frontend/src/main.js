@@ -2,6 +2,7 @@ import { qrPanel } from "./qr-panel.js";
 import { analytics, privacy } from "./insights.js";
 import "./styles.css";
 import { symbol } from "./symbols.js";
+import { stepArt } from "./step-art.js";
 import { appPassport } from "./passport.js";
 import { backupPanel } from "./backup.js";
 import { manageLink } from "./link-management.js";
@@ -407,16 +408,11 @@ function discover() {
           "Share it. Follow it.",
           "Pair Android and iPhone listings, then see where your smart links go.",
         ],
-      ].map(([n, t, d], index) =>
+      ].map(([, t, d], index) =>
         el(
           "div",
           { class: "how-step" },
-          el(
-            "div",
-            { class: "step-top" },
-            el("span", { class: "step-number" }, n),
-            symbol(["scan", "stack", "link"][index]),
-          ),
+          stepArt(index),
           el("h3", {}, t),
           el("p", {}, d),
           el(
