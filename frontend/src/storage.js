@@ -1,4 +1,4 @@
-const key = "playqr-library-v2";
+let key = "playqr-library-v2";
 export const initial = () => ({
   favorites: [],
   recent: [],
@@ -7,9 +7,9 @@ export const initial = () => ({
   shares: [],
   theme: "system",
 });
-export function read() {
+export function read(storageKey = key) {
   try {
-    const value = JSON.parse(localStorage.getItem(key)) || {},
+    const value = JSON.parse(localStorage.getItem(storageKey)) || {},
       result = initial();
     const isApp = (a) =>
       a && typeof a.id === "string" && typeof a.title === "string";
@@ -45,14 +45,25 @@ export function read() {
   }
 }
 export let state = read();
-export function save() {
+export function save(notify = true) {
   try {
     localStorage.setItem(key, JSON.stringify(state));
+    if (notify) window.dispatchEvent(new Event("playqr:library"));
     return true;
   } catch {
     return false;
   }
 }
+export function switchLibrary(userId) {
+  key = userId ? "playqr-library-v3:" + userId : "playqr-library-v2";
+  state = read();
+}
+export function replaceCloud(data) {
+  state.favorites = data?.favorites || [];
+  state.collections = data?.collections || [];
+  return save(false);
+}
+export const guestLibrary = () => read("playqr-library-v2");
 export function remember(app) {
   state.recent = [app, ...state.recent.filter((a) => a.id !== app.id)].slice(
     0,
@@ -78,4 +89,3 @@ export function ownerKey() {
   }
   return value;
 }
-

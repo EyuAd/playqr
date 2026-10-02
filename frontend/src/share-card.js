@@ -90,7 +90,7 @@ export async function renderShareCard(
   ctx.fillText(
     kind === "collection"
       ? `${apps.length} APPS · ONE COLLECTION`
-      : "AN ANDROID APP WORTH SHARING",
+      : "AN APP WORTH SHARING",
     72,
     drawn ? 260 : 192,
   );
@@ -175,4 +175,3 @@ export async function openShareCard(options) {
       "The card could not be generated. Close this preview and try again.";
   }
 }
-

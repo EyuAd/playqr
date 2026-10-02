@@ -1,6 +1,6 @@
 # PlayQR — Good apps travel.
 
-Find Android apps from any device. Share a direct Google Play QR code, a device-aware link, or an entire collection.
+Discover Android and iPhone apps from any device. Share an exact store listing, a device-aware QR, or a curated collection.
 
 [Live demo](https://eyuad.github.io/playqr/) · [Architecture](docs/architecture.md)
 
@@ -8,28 +8,30 @@ Find Android apps from any device. Share a direct Google Play QR code, a device-
 
 ## What it does
 
-Search by app name or paste a Google Play listing. Choose the correct app using its original icon, developer, category, rating, and price when available. Export a QR locally, save a favorite, or publish a shareable collection.
+Search by app name or paste a Google Play / App Store listing. Choose the correct app using its original icon, developer, category, rating, and price when available. Export a QR locally, save a favorite, or publish a shareable collection.
 
 ### Core features
 
-- Debounced, cached Google Play search with original app artwork, keyboard navigation, and explicit empty/error states.
-- App-detail pages with direct Play links and locally generated PNG/SVG QR downloads.
+- Debounced, cached Google Play and Apple App Store search, store filters, original artwork, keyboard navigation, and explicit empty/error states.
+- App-detail pages with direct store links and locally generated PNG/SVG QR downloads.
 - High-contrast QR palettes, light backgrounds, three export sizes, and reset controls.
-- Smart links: Android opens Google Play; iPhone and desktop open an informative PlayQR page.
-- Collections: local drafts, up to 20 apps, and immutable public snapshots with their own QR.
+- Smart links: manually confirm matching versions to route Android to Google Play and iPhone to the App Store. Other devices or unavailable platforms see a share page.
+- Collections: up to 20 apps across both stores, themed covers, categories, curator notes, public snapshots and editable copies of shared collections.
 - A browser-owned library: favorites, recent apps/searches, shared links, most-visited links, and last-visited times.
 - Real 7-day, 30-day, and all-time aggregate analytics; no fabricated metrics.
+- Owner-only title editing, confirmed link revocation, and analytics CSV export.
+- Optional Google/email accounts, revision-protected library sync and opt-in public collection profiles. These stay disabled until [authentication setup](docs/accounts-setup.md) is complete.
 - Responsive light/dark themes, visible keyboard focus, reduced-motion support, and offline messaging.
 
 ## Architecture and stack
 
-The original vanilla-JavaScript frontend and Cloudflare Worker remain the foundation. Vite now builds modular JavaScript/CSS, `qrcode` generates images on-device, and Cloudflare D1 stores published links and daily aggregates. No frontend framework, ORM, analytics SDK, or account system is required.
+The vanilla-JavaScript frontend and Cloudflare Worker remain the foundation. Vite builds modular JavaScript/CSS, `qrcode` generates images on-device, and Cloudflare D1 stores links, aggregates, cloud libraries and profiles. Optional Supabase Auth handles identity; the Worker verifies sessions before accessing account data. Guest search and sharing do not require an account.
 
 ```text
-Browser → Worker /search or /app → Google Play public listings
+Browser → Worker /search or /app → Google Play / Apple listings
 Browser → local QR generation → PNG / SVG
 Browser → Worker /links → D1 published snapshot
-Scan → Worker /a/:code → Google Play (Android app)
+Scan → Worker /a/:code → Matching Google Play / App Store listing
                        → PlayQR share page (other devices / collections)
                        → D1 daily aggregate (eligible visits only)
 ```
@@ -47,29 +49,29 @@ index.html assets/ Published GitHub Pages build snapshot
 
 ## Engineering decisions
 
-**A selected app, never search results.** Every QR resolves to an exact validated Android package. Only canonical HTTPS Google Play URLs are accepted. App metadata is rendered as text, never injected as HTML.
+**A selected app, never search results.** Every QR resolves to an exact Android package or namespaced Apple app ID. Only canonical HTTPS store destinations are accepted. App metadata is rendered as text, never injected as HTML. Cross-store pairing requires creator confirmation; PlayQR does not claim to verify developer relationships.
 
-**Structured metadata first.** The Worker reads Google's JSON-LD rather than mixing arbitrary page text into app names or developer labels. Open Graph data is a limited fallback. Missing fields stay absent instead of being invented. Only Google's known image hosts are accepted.
+**Structured metadata first.** Google uses JSON-LD with limited Open Graph fallback; Apple uses its Search/Lookup API. Missing fields stay absent. Icons are restricted to the stores' known image hosts.
 
-**Small, bounded requests.** Search returns up to six matches, with parallel detail requests, timeouts, five-minute search caching, and six-hour app caching at the edge. The browser also maintains a small short-lived cache and cancels stale searches. QR code generation is lazy-loaded.
+**Small, bounded requests.** Search requests up to six results per store, with timeouts, five-minute search caching, and six-hour app caching at the edge. Both-store search can show partial results when one provider fails. The browser cancels stale searches. QR generation and the authentication client are lazy-loaded.
 
 **Reliable QR customization.** Three dark inks, two light backgrounds, a four-module quiet zone, and high error correction. No center logos or cosmetic module shapes that might compromise scanning. Tests decode every palette to the exact destination.
 
-**No premature authentication system.** A cryptographically random browser key owns published links; only its SHA-256 hash is stored in D1. It is a bearer credential, not an account. Clearing browser data loses access to analytics. Public links remain public. Synchronization and key recovery are future work.
+**Guest-first, account-ready.** A random browser key owns guest links; only its hash is stored. Optional accounts use server-verified Supabase sessions, separate local storage, and optimistic cloud revisions to prevent silent overwrites. Importing guest links requires an explicit action. Clearing guest data still loses guest management access.
 
 ## Smart links
 
-`https://playqr-search.adaneeuael07.workers.dev/a/{code}` is a stable, randomly generated link. Android single-app links redirect to the exact Play listing. Other devices receive a PlayQR information page with sharing options. Collections always open their collection page. Device detection is deliberately simple user-agent classification, not fingerprinting.
+`https://playqr-search.adaneeuael07.workers.dev/a/{code}` is a stable, randomly generated link. App links redirect to a matching store listing for the device when one is included. Otherwise they open the PlayQR share page. Collections always open their collection page. Device detection uses simple user-agent classification, not fingerprinting.
 
-Collection publication creates a snapshot. Editing a local draft does not silently change existing shared links. Direct Play QR codes continue to work without a database or smart-link service.
+Collection publication creates a snapshot. Editing a draft does not silently change existing shared links. Direct store QR codes continue to work without a database or smart-link service.
 
 ## Analytics and privacy
 
 Counts represent **link opens**, not unique people or provable camera scans. Repeated opens count again. Known bots, previews, prefetch requests, HEAD requests, Do Not Track, and Global Privacy Control are excluded where detectable.
 
-The app stores daily totals by link, device category, browser family, and approximate country. It does not store raw IP addresses, full user agents, referrers, precise locations, cookies, or visitor identifiers. Cloudflare uses IPs transiently for rate limiting. Hosting providers may maintain operational logs under their policies. Icons and fonts are fetched from Google; QR images are generated locally.
+The app stores daily totals by link, device category, browser family, and approximate country. Analytics does not store raw IPs, full user agents, referrers, precise locations, cookies, or visitor identifiers. Cloudflare uses IPs transiently for rate limiting. Icons come from Google and Apple; fonts come from Google; QR images are generated locally. Account sessions are separate from anonymous visitor analytics.
 
-The dashboard is protected by the browser key. Public share responses do not expose private totals. Aggregates currently persist for the lifetime of a link. This is not anonymous account recovery or a GDPR compliance certification. See [architecture and operational limitations](docs/architecture.md).
+The dashboard is protected by the browser key or verified account session. Public responses do not expose private totals or cloud drafts. Aggregates persist for the lifetime of a link and are deleted on revocation. See [architecture and operational limitations](docs/architecture.md).
 
 ## Local development
 
@@ -106,11 +108,10 @@ See [deployment guide](docs/deployment.md) for database setup, verification, pub
 
 ## Roadmap
 
-- Account-backed optional sync and management-key recovery.
+- Complete production Google/email provider setup and expand account lifecycle controls.
 - Configurable automatic aggregate retention (owner-controlled link revocation is available).
 - Licensed/contracted app-metadata provider if usage outgrows public-page extraction.
 - Automated accessibility audits, wider browser coverage, and service-level monitoring.
 - Signed release previews and automated deployment once repository deployment permissions are configured.
 
-PlayQR is independent of Google and is not affiliated with Google Play or the apps it lists.
-
+PlayQR is independent of Google and Apple and is not affiliated with either store or the apps it lists.

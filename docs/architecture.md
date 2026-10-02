@@ -2,7 +2,7 @@
 
 ## Existing system
 
-See [the initial audit](audit.md). The original stack was a static, inline JavaScript website with a Worker search proxy, no database, and externally generated QR images. The upgrade retains vanilla JavaScript, GitHub Pages, Google Play search, and the Cloudflare Worker; separates responsibilities; adds local QR generation and only two persistent tables.
+See [the initial audit](audit.md). The app retains vanilla JavaScript, GitHub Pages and Cloudflare Workers. D1 stores links, visit aggregates, optional cloud libraries and public profiles. Apple search complements the Google Play parser; Supabase provides optional identity verification, not application-data storage.
 
 ## Data ownership
 
@@ -18,18 +18,23 @@ The composite daily primary key aggregates repeated visits. An owner/creation in
 
 ## API
 
-| Method / route                          | Purpose                                  | Protection                                 |
-| --------------------------------------- | ---------------------------------------- | ------------------------------------------ |
-| GET `/health`                           | API version and database-binding status  | Public; not a DB connectivity probe        |
-| GET `/search?q=`                        | Up to six real app results               | Query 2–120 characters                     |
-| GET `/app?id=`                          | One normalized app                       | Android package validation                 |
-| POST `/links`                           | Publish app or collection snapshot       | Bearer key, 16KB body limit, 200 links/key |
-| GET `/library`                          | Recent owned shares and totals           | Bearer key                                 |
-| GET `/links/:code`                      | Public snapshot and current app metadata | Valid random code; no private counts       |
-| PATCH `/links/:code`                    | Rename a published link (1–80 characters) | Owner-filtered SQL; destination immutable |
-| DELETE `/links/:code`                   | Revoke link and cascade-delete aggregates | Owner-filtered SQL; UI confirmation       |
-| GET `/a/:code`                          | Device-aware 302, eligible visit count   | No arbitrary redirect destination          |
-| GET `/analytics/:code?range=7\|30\|all` | Aggregate scan data                      | Owner key comparison                       |
+| Method / route                          | Purpose                                             | Protection                                                    |
+| --------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------- |
+| GET `/health`                           | API version and database-binding status             | Public; not a DB connectivity probe                           |
+| GET `/search?q=`                        | Up to six real app results                          | Query 2–120 characters                                        |
+| GET `/app?id=`                          | One normalized app                                  | Android package validation                                    |
+| POST `/links`                           | Publish app or collection snapshot                  | Bearer key, 16KB body limit, 200 links/key                    |
+| GET `/library`                          | Recent owned shares and totals                      | Bearer key                                                    |
+| GET `/links/:code`                      | Public snapshot and current app metadata            | Valid random code; no private counts                          |
+| PATCH `/links/:code`                    | Rename a published link (1–80 characters)           | Owner-filtered SQL; destination immutable                     |
+| DELETE `/links/:code`                   | Revoke link and cascade-delete aggregates           | Owner-filtered SQL; UI confirmation                           |
+| GET `/a/:code`                          | Device-aware 302, eligible visit count              | No arbitrary redirect destination                             |
+| GET `/analytics/:code?range=7\|30\|all` | Aggregate scan data                                 | Owner key comparison                                          |
+| GET `/auth/config`                      | Public auth project configuration or disabled state | Publishable key only                                          |
+| GET/POST `/account/library`             | Read/write cloud favorites and drafts               | Verified account; 128KB limit; revision comparison            |
+| GET/POST `/account/profile`             | Manage opt-in public name/handle/bio                | Verified account; unique handle                               |
+| POST `/account/claim`                   | Transfer guest links to account                     | Verified account plus possession of guest key; 200-link limit |
+| GET `/profiles/:handle`                 | Public curator page                                 | Only explicitly listed collections; no private metrics        |
 
 CORS permits the configured frontend origin (and explicit local development). It is not authentication. The Worker rate-limit binding permits 60 requests/minute per IP at each Cloudflare location; this is a best-effort abuse limit, not a global billing ceiling. See [Cloudflare's rate-limiting behavior](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/).
 
@@ -42,9 +47,10 @@ All external metadata enters DOM text nodes. Allowed image hosts are restricted.
 ## Honest limitations
 
 - Google Play has no public general-purpose app search API used here. Public HTML/JSON-LD may change, throttle, or differ by country. Results use US/English listings. A metadata provider is the scaling path.
-- No accounts, synchronization, lost-key recovery, or automatic retention purge yet. Owners can revoke links and delete their aggregates from the management dialog. Do not publish confidential collection descriptions.
+- Google/email accounts require external Supabase, Google OAuth and SMTP configuration; until then the UI explicitly reports setup pending. Tests with mock identity do not establish live sign-in readiness. Guest keys have no recovery mechanism; there is no automatic retention purge.
 - Browser-side offline support covers already loaded/saved data. It is not an installable offline PWA and does not promise cold offline startup.
 - Counts are approximate visits, not unique users. Privacy preferences, bots, rate limiting, and failed writes affect totals.
 - A key-per-browser quota is not a defense against distributed deliberate abuse. Production growth needs stronger publication controls, monitoring, and budget alerts.
-- Published collections contain package snapshots; metadata is refreshed from Google and removed apps may become unavailable.
+- Published collections contain app-ID snapshots; metadata is refreshed from stores and removed apps may become unavailable. Both providers use US listings.
 
+See [account configuration and release checks](accounts-setup.md). Signed-in libraries are partitioned by account on the client, and every server operation uses a provider-verified identity. Cloud writes use atomic revision checks; stale edits stay local until explicitly resolved. Publishing a public profile does not automatically list existing collections. Revoking a listed collection removes it from that profile.

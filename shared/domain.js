@@ -10,6 +10,37 @@ export function playUrl(id) {
   if (!validId(id)) throw new Error("Invalid Android package ID.");
   return `${PLAY_ORIGIN}/store/apps/details?id=${encodeURIComponent(id)}`;
 }
+export const isIOS = (id) =>
+  typeof id === "string" && /^ios:[1-9][0-9]{5,11}$/.test(id);
+export const validAppId = (id) => validId(id) || isIOS(id);
+export const storeLabel = (id) => (isIOS(id) ? "App Store" : "Google Play");
+export function storeUrl(id) {
+  if (isIOS(id)) return `https://apps.apple.com/us/app/id${id.slice(4)}`;
+  return playUrl(id);
+}
+export function parseStoreUrl(value) {
+  const play = parsePlayUrl(value);
+  if (play) return play;
+  try {
+    const u = new URL(value.trim());
+    if (
+      u.protocol !== "https:" ||
+      u.hostname !== "apps.apple.com" ||
+      u.port ||
+      u.username ||
+      u.password
+    )
+      return null;
+    const match = u.pathname.match(
+      /^\/(?:[a-z]{2}\/)?app\/(?:[^/]+\/)?id([1-9][0-9]{5,11})\/?$/,
+    );
+    return match
+      ? { id: "ios:" + match[1], url: storeUrl("ios:" + match[1]) }
+      : null;
+  } catch {
+    return null;
+  }
+}
 export function parsePlayUrl(value) {
   try {
     const u = new URL(value.trim());
@@ -57,7 +88,8 @@ export function imageUrl(value) {
     const u = new URL(value);
     return u.protocol === "https:" &&
       (u.hostname === "play-lh.googleusercontent.com" ||
-        u.hostname === "lh3.googleusercontent.com")
+        u.hostname === "lh3.googleusercontent.com" ||
+        /^[a-z0-9-]+\.mzstatic\.com$/.test(u.hostname))
       ? u.href
       : "";
   } catch {
@@ -72,9 +104,9 @@ export function validateCollection(input) {
     !Array.isArray(input?.ids) ||
     input.ids.length < 1 ||
     input.ids.length > 20 ||
-    !input.ids.every(validId)
+    !input.ids.every(validAppId)
   )
-    throw new Error("Choose between 1 and 20 Android apps.");
+    throw new Error("Choose between 1 and 20 Android or iPhone apps.");
   return { title, description, ids: [...new Set(input.ids)] };
 }
 export function validateQR(url, options = {}) {
@@ -99,8 +131,12 @@ export function validateQR(url, options = {}) {
   };
 }
 export function smartDestination(link, ua, frontend) {
-  return link.kind === "app" && deviceCategory(ua) === "Android"
-    ? playUrl(link.ids[0])
-    : `${frontend}#share/${encodeURIComponent(link.code)}`;
+  const device = deviceCategory(ua);
+  if (link.kind === "app") {
+    const id = link.ids.find((id) =>
+      device === "iOS" ? isIOS(id) : device === "Android" && validId(id),
+    );
+    if (id) return storeUrl(id);
+  }
+  return `${frontend}#share/${encodeURIComponent(link.code)}`;
 }
-

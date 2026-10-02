@@ -94,7 +94,11 @@ export async function getApp(id) {
     .transform(response);
   await drain(parsed);
   const app = extractApp(objects, id, meta);
-  if (app.title === id || app.title.includes('<!--') || (!app.icon && !app.developer && !app.description))
+  if (
+    app.title === id ||
+    app.title.includes("<!--") ||
+    (!app.icon && !app.developer && !app.description)
+  )
     throw Object.assign(
       new Error("App information could not be read. Try again later."),
       { status: 502 },
@@ -160,4 +164,3 @@ export async function searchApps(query) {
   );
   return result;
 }
-

@@ -200,13 +200,13 @@ export function privacy(main) {
       el(
         "p",
         {},
-        "Favorites, recent searches, viewed apps, collection drafts, theme settings, and a random management key are stored in your browser. Clearing site data removes access to this library. There are no accounts or cross-device synchronization.",
+        "Guest favorites, recent searches, viewed apps, collection drafts, theme settings, and a random management key are stored in your browser. Clearing site data removes access to a guest library. Signed-in users have a separate local library; favorites and collection drafts synchronize to their account. Recent searches, viewed apps and theme settings are not synchronized.",
       ),
       el("h2", {}, "What sharing stores"),
       el(
         "p",
         {},
-        "Published links contain app IDs, a title, an optional collection description, and a creation time. Anyone with the link can view them. A hash of your management key protects access to analytics.",
+        "Published links contain app IDs, a title, optional collection descriptions and notes, a cover palette, a category, and a creation time. Anyone with the link can view them. Collections appear on a public profile only when explicitly listed. Your profile name and bio are public; favorites, drafts and analytics are private. Ownership is checked using your browser key or verified account session. Revoking a link also deletes its visit aggregates.",
       ),
       el("h2", {}, "What a visit records"),
       el(
@@ -223,9 +223,8 @@ export function privacy(main) {
       el(
         "p",
         {},
-        "Google Play supplies public app metadata and icons. Your browser downloads icons and fonts from Google. QR codes are generated locally. GitHub Pages and Cloudflare host the service and may process standard operational request logs under their own policies.",
+        "Google Play and Apple supply public app metadata and icons. Your browser downloads icons from their servers and fonts from Google. Supabase handles Google/email authentication when enabled; your email and sign-in session are processed by that service. PlayQR never handles your Google password. Account libraries are stored on Cloudflare. QR codes are generated locally. GitHub Pages, Cloudflare and authentication providers may process infrastructure logs under their own policies.",
       ),
     ),
   );
 }
-

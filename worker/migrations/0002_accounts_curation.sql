@@ -1,0 +1,13 @@
+ALTER TABLE links ADD COLUMN presentation TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE links ADD COLUMN listed INTEGER NOT NULL DEFAULT 0;
+CREATE TABLE profiles (
+  owner_hash TEXT PRIMARY KEY,
+  handle TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  bio TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE libraries (
+  owner_hash TEXT PRIMARY KEY,
+  data TEXT NOT NULL,
+  revision INTEGER NOT NULL DEFAULT 1
+);

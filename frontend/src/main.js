@@ -20,11 +20,24 @@ import {
 } from "./ui.js";
 import { state, save, remember, favorite } from "./storage.js";
 import { search, appDetails, publish, request, API } from "./api.js";
-import { parsePlayUrl, validId, playUrl } from "../../shared/domain.js";
+import {
+  parseStoreUrl,
+  validAppId,
+  storeUrl,
+  storeLabel,
+  isIOS,
+} from "../../shared/domain.js";
+import { covers, categories, curate } from "../../shared/curation.js";
+import { pairPicker } from "./pairing.js";
+import { collectionCover } from "./collection-design.js";
+import { initAuth, session } from "./auth.js";
+import { initializeWorkspace, syncStatus } from "./sync.js";
+import { accountPage, profilePage } from "./account.js";
 import { reorderApps, duplicateCollection } from "../../shared/collections.js";
 
 const main = document.querySelector("#main");
 let routeVersion = 0,
+  ready = false,
   currentRequest,
   debounce;
 const known = new Map(
@@ -39,12 +52,12 @@ function openApp(app) {
   rememberApp(app);
   location.hash = "app/" + app.id;
 }
-function cards(apps) {
+function cards(apps, notes = {}) {
   return el(
     "div",
     { class: "results-grid" },
-    apps.map((app) =>
-      appCard(
+    apps.map((app) => {
+      const card = appCard(
         app,
         openApp,
         (a, e) => {
@@ -54,8 +67,18 @@ function cards(apps) {
         },
         state.favorites.some((a) => a.id === app.id),
         addToCollection,
-      ),
-    ),
+      );
+      if (notes[app.id])
+        card.append(
+          el(
+            "p",
+            { class: "curator-note" },
+            el("span", {}, "CURATOR’S NOTE"),
+            notes[app.id],
+          ),
+        );
+      return card;
+    }),
   );
 }
 function updateCounts() {
@@ -153,7 +176,7 @@ function discover() {
       el(
         "p",
         { class: "lede" },
-        "Find any Android app and share it instantly.",
+        "Discover Android and iPhone apps. Share your favorites.",
         el("br"),
         "One search. One scan. You’re there.",
       ),
@@ -183,9 +206,9 @@ function discover() {
   hero.append(art);
   const input = el("input", {
     type: "search",
-    placeholder: "Search an app or paste a Google Play link",
+    placeholder: "Search an app or paste its store link",
     maxlength: 2048,
-    "aria-label": "App name or Google Play URL",
+    "aria-label": "App name or store URL",
     autocomplete: "off",
     id: "app-search",
   });
@@ -205,8 +228,18 @@ function discover() {
   const status = el(
     "p",
     { class: "search-status", role: "status", "aria-live": "polite" },
-    "Search Google Play from your iPhone, laptop, or any device.",
+    "Search Google Play and the App Store from any device. US listings.",
   );
+  const store = el(
+    "select",
+    { "aria-label": "App store", class: "store-filter" },
+    el("option", { value: "all" }, "Both stores"),
+    el("option", { value: "android" }, "Google Play · Android"),
+    el("option", { value: "ios" }, "App Store · iPhone"),
+  );
+  store.addEventListener("change", () => {
+    if (input.value.trim().length >= 2) void run();
+  });
   const results = el("section", {
     class: "search-results",
     "aria-label": "App search results",
@@ -253,22 +286,22 @@ function discover() {
       status.textContent = "Enter at least two characters.";
       return;
     }
-    const direct = parsePlayUrl(q);
+    const direct = parseStoreUrl(q);
     if (!direct && (/https?:|play\.google|:\/\//i.test(q) || q.length > 120)) {
       status.textContent =
-        "Paste a valid https://play.google.com/store/apps/details?id=… link.";
+        "Paste a direct Google Play or apps.apple.com app listing link.";
       return;
     }
     const controller = new AbortController();
     currentRequest = controller;
-    status.textContent = "Finding apps on Google Play…";
+    status.textContent = "Finding apps in your selected stores…";
     results.replaceChildren(skeleton());
     results.setAttribute("aria-busy", "true");
     submit.disabled = true;
     try {
       const data = direct
         ? { apps: [(await appDetails(direct.id, controller.signal)).app] }
-        : await search(q, controller.signal);
+        : await search(q, controller.signal, store.value);
       if (ticket !== sequence || route !== routeVersion) return;
       data.apps.forEach((a) => known.set(a.id, a));
       results.replaceChildren(
@@ -282,6 +315,7 @@ function discover() {
       status.textContent = data.apps.length
         ? `${data.apps.length} matches · Choose an app to share`
         : "No matching apps found";
+      if (data.warning) status.textContent += " · " + data.warning;
       state.searches = [q, ...state.searches.filter((x) => x !== q)].slice(
         0,
         8,
@@ -316,7 +350,7 @@ function discover() {
     submit.disabled = false;
     if (input.value.trim().length < 2) {
       results.replaceChildren();
-      status.textContent = "Enter an app name or paste its Google Play link.";
+      status.textContent = "Enter an app name or paste its store link.";
       return;
     }
     debounce = setTimeout(() => void run(), 650);
@@ -346,6 +380,16 @@ function discover() {
     el(
       "section",
       { class: "search-area" },
+      el(
+        "div",
+        { class: "store-toolbar" },
+        el("label", {}, "Look in", store),
+        el(
+          "span",
+          { class: "small-note" },
+          "Original listings. Original icons.",
+        ),
+      ),
       form,
       status,
       suggestions,
@@ -371,7 +415,7 @@ function discover() {
         [
           "01",
           "Find your next favorite",
-          "Real Google Play apps, with the details that matter.",
+          "Real Android and iPhone apps, with the details that matter.",
         ],
         [
           "02",
@@ -397,11 +441,11 @@ function discover() {
   );
 }
 async function details(id, version) {
-  if (!validId(id)) {
+  if (!validAppId(id)) {
     main.append(
       empty(
         "That app link isn’t valid",
-        "Return to search to find an Android app.",
+        "Return to search to find an app.",
         el("a", { href: "#discover", class: "button primary" }, "Find an app"),
       ),
     );
@@ -410,7 +454,7 @@ async function details(id, version) {
   main.append(skeleton());
   let app = known.get(id);
   try {
-    if (!app) app = (await appDetails(id)).app;
+    if (!app || !app.description) app = (await appDetails(id)).app;
     if (version !== routeVersion) return;
     rememberApp(app);
     main.replaceChildren(
@@ -419,7 +463,11 @@ async function details(id, version) {
     const info = el(
       "section",
       { class: "app-detail" },
-      el("p", { class: "eyebrow" }, "AN ANDROID APP WORTH SHARING"),
+      el(
+        "p",
+        { class: "eyebrow" },
+        storeLabel(app.id) + " · AN APP WORTH SHARING",
+      ),
       el(
         "div",
         { class: "app-detail-heading" },
@@ -440,8 +488,7 @@ async function details(id, version) {
       el(
         "p",
         { class: "description" },
-        app.description ||
-          "View the Google Play listing for full app information.",
+        app.description || "View the store listing for full app information.",
       ),
       el(
         "div",
@@ -449,12 +496,12 @@ async function details(id, version) {
         el(
           "a",
           {
-            href: playUrl(app.id),
+            href: storeUrl(app.id),
             target: "_blank",
             rel: "noopener",
             class: "button primary",
           },
-          "Open Google Play ↗",
+          "Open " + storeLabel(app.id) + " ↗",
         ),
         button("♡ Save app", () => {
           toast(
@@ -466,18 +513,30 @@ async function details(id, version) {
       el(
         "div",
         { class: "handoff-note" },
-        el("strong", {}, "An Android app. A link for everyone."),
+        el("strong", {}, "The right app. On the right device."),
         el(
           "p",
           {},
-          "On an iPhone or computer? Share the QR with an Android device to install from Google Play.",
+          "This listing is for " +
+            (isIOS(app.id) ? "iPhone / iPad" : "Android") +
+            ". You can pair a confirmed version from the other store below.",
         ),
       ),
     );
+    const pairing = pairPicker(app);
+    info.append(pairing.element);
     const panel = await qrPanel(
       app.title,
-      playUrl(app.id),
-      () => publish({ kind: "app", id: app.id }),
+      storeUrl(app.id),
+      async () => {
+        const result = await publish({
+          kind: "app",
+          id: app.id,
+          ...pairing.selection(),
+        });
+        pairing.lock();
+        return result;
+      },
       { apps: [app], kind: "app" },
     );
     if (version !== routeVersion) return;
@@ -530,6 +589,7 @@ function collections() {
         el(
           "a",
           { href: "#collection/" + c.id, class: "collection-card" },
+          collectionCover(c, true),
           el(
             "div",
             { class: "icon-stack" },
@@ -582,6 +642,37 @@ function editCollection(id) {
       c.description,
     );
   const list = el("div", { class: "collection-apps" });
+  const listed = el("input", { type: "checkbox" });
+  const cover = el(
+    "select",
+    { "aria-label": "Collection cover" },
+    covers.map((value) =>
+      el(
+        "option",
+        { value, selected: value === (c.cover || "forest") },
+        value[0].toUpperCase() + value.slice(1),
+      ),
+    ),
+  );
+  const category = el(
+    "select",
+    { "aria-label": "Collection category" },
+    categories.map((value) =>
+      el(
+        "option",
+        { value, selected: value === (c.category || "Everyday") },
+        value,
+      ),
+    ),
+  );
+  const coverPreview = el("div", {}, collectionCover(c));
+  for (const control of [cover, category])
+    control.addEventListener("change", () => {
+      c.cover = cover.value;
+      c.category = category.value;
+      save();
+      coverPreview.replaceChildren(collectionCover(c));
+    });
   const redraw = () => {
     list.replaceChildren(
       ...c.apps.map((a, index) =>
@@ -594,6 +685,25 @@ function editCollection(id) {
             { class: "collection-app-label" },
             el("strong", {}, a.title),
             el("p", { class: "muted" }, a.developer),
+            (() => {
+              const note = el(
+                "textarea",
+                {
+                  "aria-label": `Why you recommend ${a.title}`,
+                  maxlength: 240,
+                  rows: 2,
+                  class: "app-note",
+                  placeholder: "Why do you recommend this app?",
+                },
+                c.notes?.[a.id] || "",
+              );
+              note.addEventListener("input", () => {
+                c.notes ||= {};
+                c.notes[a.id] = note.value;
+                save();
+              });
+              return note;
+            })(),
           ),
           el(
             "div",
@@ -728,7 +838,19 @@ function editCollection(id) {
         "text-button danger-text",
       ),
     ),
-    el("div", { class: "collection-editor" }, title, description),
+    coverPreview,
+    el(
+      "div",
+      { class: "collection-editor" },
+      title,
+      description,
+      el(
+        "div",
+        { class: "curation-options" },
+        el("label", {}, "Cover palette", cover),
+        el("label", {}, "Category", category),
+      ),
+    ),
     list,
     el(
       "div",
@@ -748,16 +870,35 @@ function editCollection(id) {
             title: c.title,
             description: c.description,
             ids: c.apps.map((a) => a.id),
+            ...curate(
+              c,
+              c.apps.map((a) => a.id),
+            ),
+            listed: session ? listed.checked : false,
           });
           location.hash = "share/" + published.code;
         }),
         "button primary",
       ),
     ),
+    ...(session
+      ? [
+          el(
+            "label",
+            { class: "confirm-revoke" },
+            listed,
+            el(
+              "span",
+              {},
+              "List this collection on my public profile (create your profile in Account first).",
+            ),
+          ),
+        ]
+      : []),
     el(
       "p",
       { class: "small-note" },
-      "Drafts stay in this browser. Publishing creates a public snapshot; later edits won’t change existing links.",
+      "Guest drafts stay in this browser; signed-in drafts sync to your account. Publishing creates a public snapshot; later edits won’t change existing links.",
     ),
   );
   redraw();
@@ -768,6 +909,9 @@ async function shared(code, version) {
     const data = await request("/links/" + encodeURIComponent(code));
     if (version !== routeVersion) return;
     main.replaceChildren(
+      ...(data.link.kind === "collection"
+        ? [collectionCover(data.link.presentation)]
+        : []),
       heading(
         data.link.kind === "collection"
           ? "A SHARED COLLECTION"
@@ -788,10 +932,10 @@ async function shared(code, version) {
         ? el(
             "p",
             { class: "handoff-note" },
-            "This is an Android app. Open Google Play on your Android device to install it.",
+            "Choose the listing for your device. Store availability may vary by country.",
           )
         : null,
-      cards(data.apps),
+      cards(data.apps, data.link.presentation?.notes),
       data.unavailable
         ? el(
             "p",
@@ -800,6 +944,42 @@ async function shared(code, version) {
           )
         : null,
     );
+    if (data.link.kind === "collection")
+      content.prepend(
+        button(
+          "Save a copy to my collections",
+          () => {
+            if (state.collections.length >= 100) {
+              toast("Your library can hold up to 100 collections.");
+              return;
+            }
+            if (!data.apps.length) {
+              toast("No available apps can be copied right now.");
+              return;
+            }
+            const c = {
+              id: crypto.randomUUID(),
+              title: data.link.title,
+              description: data.link.description,
+              apps: data.apps.map((a) => ({ ...a })),
+              ...curate(
+                data.link.presentation,
+                data.apps.map((a) => a.id),
+              ),
+            };
+            state.collections.push(c);
+            if (!save()) {
+              state.collections.pop();
+              toast("Could not save this collection.");
+              return;
+            }
+            updateCounts();
+            location.hash = "collection/" + c.id;
+            toast("Your own editable copy is ready.");
+          },
+          "button primary",
+        ),
+      );
     main.append(el("div", { class: "detail-layout" }, content, panel));
   } catch (e) {
     if (version === routeVersion)
@@ -807,6 +987,22 @@ async function shared(code, version) {
   }
 }
 async function dashboard(version) {
+  main.append(
+    el(
+      "div",
+      { class: "library-account" },
+      el(
+        "span",
+        { class: "small-note" },
+        session ? syncStatus : "Guest library · Saved on this device",
+      ),
+      el(
+        "a",
+        { href: "#account", class: "text-link" },
+        session ? "Account & sync ↗" : "Use PlayQR across devices ↗",
+      ),
+    ),
+  );
   main.append(
     heading(
       "YOUR LIBRARY",
@@ -932,7 +1128,7 @@ async function dashboard(version) {
                 el(
                   "p",
                   { class: "muted" },
-                  l.kind === "collection" ? "Collection" : "Android app",
+                  l.kind === "collection" ? "Collection" : "App link",
                   l.last_scanned
                     ? " · Last visited " +
                         new Date(l.last_scanned).toLocaleDateString()
@@ -994,6 +1190,14 @@ async function route() {
   else if (name === "analytics")
     await analytics(main, id, () => version === routeVersion);
   else if (name === "privacy") privacy(main);
+  else if (name === "account")
+    await accountPage(
+      main,
+      () => version === routeVersion,
+      () => void route(),
+    );
+  else if (name === "profile")
+    await profilePage(main, id, () => version === routeVersion);
   else discover();
 }
 const prefersDark = matchMedia("(prefers-color-scheme: dark)");
@@ -1029,6 +1233,30 @@ document.querySelector(".skip").addEventListener("click", (event) => {
 window.addEventListener("online", connectivity);
 window.addEventListener("offline", connectivity);
 connectivity();
-window.addEventListener("hashchange", () => void route());
-void route();
-
+window.addEventListener("hashchange", () => {
+  if (ready) void route();
+});
+window.addEventListener("playqr:auth", async () => {
+  ready = false;
+  routeVersion++;
+  currentRequest?.abort();
+  main.replaceChildren(skeleton());
+  try {
+    await initializeWorkspace();
+  } catch (e) {
+    toast(e.message);
+  }
+  known.clear();
+  theme();
+  ready = true;
+  void route();
+});
+main.append(skeleton());
+void initAuth()
+  .then(() => initializeWorkspace())
+  .catch((e) => toast(e.message))
+  .finally(() => {
+    known.clear();
+    ready = true;
+    void route();
+  });

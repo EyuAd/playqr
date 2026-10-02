@@ -1,4 +1,4 @@
-import { imageUrl } from "../../shared/domain.js";
+import { imageUrl, storeLabel } from "../../shared/domain.js";
 export function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {
@@ -67,7 +67,8 @@ export function appCard(app, open, favoriteAction, isFavorite, addAction) {
       "span",
       { class: "app-summary" },
       el("strong", {}, app.title),
-      el("span", { class: "muted" }, app.developer || "Google Play"),
+      el("span", { class: "muted" }, app.developer || storeLabel(app.id)),
+      el("span", { class: "platform-badge" }, storeLabel(app.id)),
       el("span", { class: "app-meta" }, metadata(app)),
     ),
   );
@@ -168,4 +169,3 @@ export function heading(kicker, title, description) {
 export function errorPanel(message, retry) {
   return empty("Something didn’t connect", message, button("Try again", retry));
 }
-

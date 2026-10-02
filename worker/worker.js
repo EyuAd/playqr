@@ -1,5 +1,6 @@
 import {
-  validId,
+  validAppId,
+  isIOS,
   validateCollection,
   text,
   deviceCategory,
@@ -7,27 +8,22 @@ import {
   smartDestination,
 } from "../shared/domain.js";
 import { getApp, searchApps } from "./metadata.js";
+import { getApple, searchApple } from "./apple.js";
+import { authConfig, resolveOwner, accountOwner } from "./auth.js";
+import { accounts } from "./accounts.js";
+import { curate } from "../shared/curation.js";
+const getStoreApp = (id) => (isIOS(id) ? getApple(id) : getApp(id));
 
 const DEFAULT_SITE = "https://eyuad.github.io/playqr/";
-async function ownerHash(request) {
-  const token = request.headers.get("Authorization")?.replace(/^Bearer /, "");
-  if (!token || !/^[a-f0-9]{64}$/.test(token))
-    throw Object.assign(
-      new Error("Your browser library key is missing. Reload and try again."),
-      { status: 401 },
-    );
-  const bytes = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(token),
-  );
-  return [...new Uint8Array(bytes)]
-    .map((x) => x.toString(16).padStart(2, "0"))
-    .join("");
-}
 function unpack(row) {
-  return { ...row, ids: JSON.parse(row.ids), owner_hash: undefined };
+  return {
+    ...row,
+    ids: JSON.parse(row.ids),
+    presentation: JSON.parse(row.presentation || "{}"),
+    owner_hash: undefined,
+  };
 }
-async function body(request) {
+async function body(request, limit = 16000) {
   if (!request.headers.get("Content-Type")?.startsWith("application/json"))
     throw Object.assign(new Error("Expected JSON."), { status: 415 });
   const reader = request.body?.getReader();
@@ -40,7 +36,7 @@ async function body(request) {
     const chunk = await reader.read();
     if (chunk.done) break;
     total += chunk.value.length;
-    if (total > 16000) {
+    if (total > limit) {
       await reader.cancel();
       throw Object.assign(new Error("Request is too large."), { status: 413 });
     }
@@ -103,38 +99,86 @@ export default {
           },
         );
       if (url.pathname === "/health")
-        return json({ ok: true, version: 3, sharing: Boolean(env.DB) });
+        return json({
+          ok: true,
+          version: 4,
+          sharing: Boolean(env.DB),
+          accounts: authConfig(env).enabled,
+        });
+      if (url.pathname === "/auth/config" && request.method === "GET")
+        return json(authConfig(env));
       if (url.pathname === "/search" && request.method === "GET") {
         const q = text(url.searchParams.get("q"), 121);
         if (q.length < 2 || q.length > 120)
           return json({ error: "Enter between 2 and 120 characters." }, 400);
-        return json(await searchApps(q));
+        const store = url.searchParams.get("store") || "android";
+        if (!["android", "ios", "all"].includes(store))
+          return json({ error: "Choose a valid app store." }, 400);
+        if (store === "android") return json(await searchApps(q));
+        if (store === "ios") return json(await searchApple(q));
+        const results = await Promise.allSettled([
+          searchApps(q),
+          searchApple(q),
+        ]);
+        if (results.every((r) => r.status === "rejected"))
+          throw Object.assign(
+            new Error("Both stores are temporarily unavailable."),
+            { status: 502 },
+          );
+        return json({
+          apps: results.flatMap((r) =>
+            r.status === "fulfilled" ? r.value.apps : [],
+          ),
+          warning: results.some((r) => r.status === "rejected")
+            ? "One store is temporarily unavailable. Showing results from the other store."
+            : null,
+        });
       }
       if (url.pathname === "/app" && request.method === "GET") {
         const id = url.searchParams.get("id");
-        if (!validId(id))
-          return json({ error: "Invalid Google Play app ID." }, 400);
-        return json({ app: await getApp(id) });
+        if (!validAppId(id)) return json({ error: "Invalid app ID." }, 400);
+        return json({ app: await getStoreApp(id) });
       }
       if (!env.DB)
         return json(
           {
             error:
-              "Sharing is temporarily unavailable. Direct Play Store QR codes still work.",
+              "Sharing is temporarily unavailable. Direct store QR codes still work.",
           },
           503,
         );
+      if (
+        url.pathname.startsWith("/account/") ||
+        url.pathname.startsWith("/profiles/")
+      ) {
+        const response = await accounts(request, env, json, body);
+        if (response) return response;
+      }
       if (url.pathname === "/links" && request.method === "POST") {
-        const owner = await ownerHash(request);
+        const owner = await resolveOwner(request, env);
         const input = await body(request);
         if (!input || typeof input !== "object" || Array.isArray(input))
           return json({ error: "Expected a share object." }, 400);
         let item;
         if (input.kind === "app") {
-          if (!validId(input.id))
+          if (!validAppId(input.id))
             return json({ error: "Invalid app ID." }, 400);
-          const app = await getApp(input.id);
+          if (
+            input.pairedId &&
+            (!validAppId(input.pairedId) ||
+              isIOS(input.id) === isIOS(input.pairedId) ||
+              input.confirmedPair !== true)
+          )
+            return json(
+              { error: "Confirm a matching app from the other store." },
+              400,
+            );
+          const app = await getStoreApp(input.id);
           item = { title: app.title, description: "", ids: [app.id] };
+          if (input.pairedId) {
+            await getStoreApp(input.pairedId);
+            item.ids.push(input.pairedId);
+          }
         } else if (input.kind === "collection") {
           try {
             item = validateCollection(input);
@@ -142,9 +186,29 @@ export default {
             return json({ error: e.message }, 400);
           }
         } else return json({ error: "Unknown share type." }, 400);
+        const presentation =
+          input.kind === "collection" ? curate(input, item.ids) : {};
+        const listed = input.kind === "collection" && input.listed === true;
+        if (listed) {
+          await accountOwner(request, env);
+          if (
+            !(await env.DB.prepare(
+              "SELECT handle FROM profiles WHERE owner_hash = ?",
+            )
+              .bind(owner)
+              .first())
+          )
+            return json(
+              {
+                error:
+                  "Create your public profile before listing a collection.",
+              },
+              400,
+            );
+        }
         const code = crypto.randomUUID().replaceAll("-", "").slice(0, 16);
         const inserted = await env.DB.prepare(
-          "INSERT INTO links(code,owner_hash,kind,title,description,ids) SELECT ?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM links WHERE owner_hash = ?) < 200",
+          "INSERT INTO links(code,owner_hash,kind,title,description,ids,presentation,listed) SELECT ?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM links WHERE owner_hash = ?) < 200",
         )
           .bind(
             code,
@@ -153,6 +217,8 @@ export default {
             item.title,
             item.description,
             JSON.stringify(item.ids),
+            JSON.stringify(presentation),
+            listed ? 1 : 0,
             owner,
           )
           .run();
@@ -169,7 +235,7 @@ export default {
         );
       }
       if (url.pathname === "/library" && request.method === "GET") {
-        const owner = await ownerHash(request);
+        const owner = await resolveOwner(request, env);
         const { results } = await env.DB.prepare(
           "SELECT * FROM links WHERE owner_hash = ? ORDER BY created_at DESC LIMIT 200",
         )
@@ -184,7 +250,7 @@ export default {
         match?.[1] === "links" &&
         ["PATCH", "DELETE"].includes(request.method)
       ) {
-        const owner = await ownerHash(request),
+        const owner = await resolveOwner(request, env),
           code = match[2];
         const owned = await env.DB.prepare(
           "SELECT code FROM links WHERE code = ? AND owner_hash = ?",
@@ -278,7 +344,7 @@ export default {
           });
         }
         if (match[1] === "analytics") {
-          if (row.owner_hash !== (await ownerHash(request)))
+          if (row.owner_hash !== (await resolveOwner(request, env)))
             return json(
               { error: "This link belongs to another browser library." },
               403,
@@ -305,7 +371,9 @@ export default {
           results = [];
         for (let i = 0; i < link.ids.length; i += 4)
           results.push(
-            ...(await Promise.allSettled(link.ids.slice(i, i + 4).map(getApp))),
+            ...(await Promise.allSettled(
+              link.ids.slice(i, i + 4).map(getStoreApp),
+            )),
           );
         for (const r of results)
           if (r.status === "fulfilled") apps.push(r.value);
@@ -317,6 +385,7 @@ export default {
             description: link.description,
             ids: link.ids,
             created_at: link.created_at,
+            presentation: link.presentation,
           },
           apps,
           unavailable: results.filter((r) => r.status === "rejected").length,
@@ -335,7 +404,7 @@ export default {
             status < 500
               ? error.message
               : status === 504
-                ? "Google Play took too long. Please try again."
+                ? "The upstream service took too long. Please try again."
                 : "The service is temporarily unavailable. Please retry.",
         },
         status,
@@ -343,4 +412,3 @@ export default {
     }
   },
 };
-

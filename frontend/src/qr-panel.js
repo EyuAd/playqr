@@ -98,7 +98,7 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
           link.value = destination;
           smart.textContent = "Smart link ready ✓";
           caption.textContent =
-            "Android → Google Play · Other devices → app page";
+            "Opens a matching store listing, or this app’s share page";
           await draw();
         } catch (e) {
           smart.disabled = false;
@@ -178,4 +178,3 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
   await draw();
   return panel;
 }
-

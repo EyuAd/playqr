@@ -1,10 +1,14 @@
 import { chromium } from "@playwright/test";
 import assert from "node:assert/strict";
 import jsQR from "jsqr";
-const browser = await chromium.launch({ channel: "chrome", headless: true, timeout: 30000 });
+const browser = await chromium.launch({
+  channel: "chrome",
+  headless: true,
+  timeout: 30000,
+});
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 page.setDefaultTimeout(20000);
-console.log('Browser ready');
+console.log("Browser ready");
 const app = {
   id: "com.spotify.music",
   title: "Spotify: Music and Podcasts",
@@ -114,10 +118,9 @@ try {
   console.log(
     "PASS: reorder persistence, independent duplication, cancel/confirm deletion, card preview, exact QR decode, PNG download, mobile layout",
   );
-} catch(error) {
-  console.log(await page.locator('body').innerText());
+} catch (error) {
+  console.log(await page.locator("body").innerText());
   throw error;
 } finally {
   await browser.close();
 }
-

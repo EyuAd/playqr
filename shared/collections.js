@@ -18,7 +18,9 @@ export function duplicateCollection(collection, id) {
     id,
     title: `${collection.title.slice(0, 73)} (copy)`,
     description: collection.description,
+    cover: collection.cover,
+    category: collection.category,
+    notes: { ...collection.notes },
     apps: collection.apps.map((app) => ({ ...app })),
   };
 }
-
