@@ -54,11 +54,19 @@ export default {
       site = env.FRONTEND_URL || DEFAULT_SITE;
     const origin = request.headers.get("Origin"),
       allowed = new URL(site).origin;
+    const allowedOrigins = new Set([
+      allowed,
+      ...(env.ADDITIONAL_FRONTEND_ORIGINS || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter((value) => value.startsWith("https://")),
+    ]);
+    if (env.ENVIRONMENT === "development")
+      allowedOrigins.add("http://127.0.0.1:5173");
     const cors = {
-      "Access-Control-Allow-Origin":
-        origin === "http://127.0.0.1:5173" && env.ENVIRONMENT === "development"
-          ? origin
-          : allowed,
+      "Access-Control-Allow-Origin": allowedOrigins.has(origin)
+        ? origin
+        : allowed,
       Vary: "Origin",
       "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",

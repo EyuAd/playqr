@@ -66,3 +66,56 @@ test("untrusted origins are not reflected in CORS", async () => {
   );
 });
 
+test("domain migration accepts only explicitly configured HTTPS origins", async () => {
+  const env = {
+    FRONTEND_URL: "https://eyuad.github.io/playqr/",
+    ADDITIONAL_FRONTEND_ORIGINS:
+      " https://eyubuilds.tech,https://www.eyubuilds.tech,http://insecure.test,* ",
+  };
+  for (const origin of [
+    "https://eyuad.github.io",
+    "https://eyubuilds.tech",
+    "https://www.eyubuilds.tech",
+  ]) {
+    for (const method of ["GET", "OPTIONS"]) {
+      const response = await call(
+        "/health",
+        { method, headers: { Origin: origin } },
+        env,
+      );
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("Access-Control-Allow-Origin"), origin);
+      assert.equal(response.headers.get("Vary"), "Origin");
+    }
+  }
+  for (const origin of [
+    "https://eyubuilds.tech.evil.test",
+    "https://other.eyubuilds.tech",
+    "http://eyubuilds.tech",
+    "http://insecure.test",
+    "http://127.0.0.1:5173",
+    "null",
+  ]) {
+    const response = await call(
+      "/health",
+      { headers: { Origin: origin } },
+      env,
+    );
+    assert.equal(
+      response.headers.get("Access-Control-Allow-Origin"),
+      "https://eyuad.github.io",
+    );
+  }
+});
+
+test("local browser access remains development-only", async () => {
+  const response = await call(
+    "/health",
+    { headers: { Origin: "http://127.0.0.1:5173" } },
+    { ENVIRONMENT: "development" },
+  );
+  assert.equal(
+    response.headers.get("Access-Control-Allow-Origin"),
+    "http://127.0.0.1:5173",
+  );
+});

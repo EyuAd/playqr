@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 export function authConfig(env) {
+  if (env.AUTH_READY === "false") return { enabled: false };
   const url = env.SUPABASE_URL || "",
     key = env.SUPABASE_PUBLISHABLE_KEY || "";
   return /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url) &&

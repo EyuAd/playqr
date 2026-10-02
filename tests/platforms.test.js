@@ -129,6 +129,14 @@ test("cloud library validation excludes credentials, history and arbitrary metad
 test("auth config only exposes a valid public project and publishable key", () => {
   assert.deepEqual(
     authConfig({
+      AUTH_READY: "false",
+      SUPABASE_URL: "https://test.supabase.co",
+      SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
+    }),
+    { enabled: false },
+  );
+  assert.deepEqual(
+    authConfig({
       SUPABASE_URL: "https://test.supabase.co",
       SUPABASE_PUBLISHABLE_KEY: "sb_secret_test",
     }),
