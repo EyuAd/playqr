@@ -44,9 +44,12 @@ Missing metadata stays missing. Failed icons display an explicit unavailable lab
 
 All external metadata enters DOM text nodes. Allowed image hosts are restricted. Direct app destinations are constructed from validated package IDs; smart-link destinations cannot be supplied by a visitor. No API secret belongs in `VITE_*` values.
 
+App Store discovery uses fixed Apple Search/Lookup URLs directly from the browser, with credentials omitted and no referrer. Both-store discovery combines that request with the Google Play Worker request, preserves store order, cancels stale requests, and reports partial provider failures. Successful searches/details use a bounded five-minute in-memory cache. Server-side iOS lookups for shared links first try Apple Lookup, then extract SoftwareApplication JSON-LD from the official listing when Lookup fails. The canonical listing must match the requested Apple ID; browser-supplied titles and icons never establish a shared app's identity. Verified server metadata is cached for six hours.
+
 ## Honest limitations
 
 - Google Play has no public general-purpose app search API used here. Public HTML/JSON-LD may change, throttle, or differ by country. Results use US/English listings. A metadata provider is the scaling path.
+- Apple can throttle or reject shared datacenter IPs. Browser discovery avoids depending on Cloudflare's Apple API access, but still requires Apple to allow browser requests. The official listing fallback protects shared-link lookups, not server-side Apple keyword search; listing formats can change. Provider failures remain visible and retryable.
 - Google/email accounts require external Supabase, Google OAuth and SMTP configuration; until then the UI explicitly reports setup pending. Tests with mock identity do not establish live sign-in readiness. Guest keys have no recovery mechanism; there is no automatic retention purge.
 - Browser-side offline support covers already loaded/saved data. It is not an installable offline PWA and does not promise cold offline startup.
 - Counts are approximate visits, not unique users. Privacy preferences, bots, rate limiting, and failed writes affect totals.
@@ -54,3 +57,4 @@ All external metadata enters DOM text nodes. Allowed image hosts are restricted.
 - Published collections contain app-ID snapshots; metadata is refreshed from stores and removed apps may become unavailable. Both providers use US listings.
 
 See [account configuration and release checks](accounts-setup.md). Signed-in libraries are partitioned by account on the client, and every server operation uses a provider-verified identity. Cloud writes use atomic revision checks; stale edits stay local until explicitly resolved. Publishing a public profile does not automatically list existing collections. Revoking a listed collection removes it from that profile.
+

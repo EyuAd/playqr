@@ -28,7 +28,9 @@ Search by app name or paste a Google Play / App Store listing. Choose the correc
 The vanilla-JavaScript frontend and Cloudflare Worker remain the foundation. Vite builds modular JavaScript/CSS, `qrcode` generates images on-device, and Cloudflare D1 stores links, aggregates, cloud libraries and profiles. Optional Supabase Auth handles identity; the Worker verifies sessions before accessing account data. Guest search and sharing do not require an account.
 
 ```text
-Browser → Worker /search or /app → Google Play / Apple listings
+Browser → Worker /search or /app → Google Play listings
+Browser → Apple Search/Lookup API → App Store apps
+Worker  → Apple Lookup / official listing → Shared App Store metadata
 Browser → local QR generation → PNG / SVG
 Browser → Worker /links → D1 published snapshot
 Scan → Worker /a/:code → Matching Google Play / App Store listing
@@ -51,7 +53,7 @@ index.html assets/ Published GitHub Pages build snapshot
 
 **A selected app, never search results.** Every QR resolves to an exact Android package or namespaced Apple app ID. Only canonical HTTPS store destinations are accepted. App metadata is rendered as text, never injected as HTML. Cross-store pairing requires creator confirmation; PlayQR does not claim to verify developer relationships.
 
-**Structured metadata first.** Google uses JSON-LD with limited Open Graph fallback; Apple uses its Search/Lookup API. Missing fields stay absent. Icons are restricted to the stores' known image hosts.
+**Structured metadata first.** Google uses JSON-LD with limited Open Graph fallback. App Store discovery calls Apple's Search/Lookup API directly from the browser, without PlayQR credentials. Server-side sharing verifies Apple IDs using Lookup, falling back to the official listing's canonical URL and SoftwareApplication JSON-LD when Apple's shared-IP rate limits affect Workers. Missing fields stay absent. Icons are restricted to the stores' known image hosts.
 
 **Small, bounded requests.** Search requests up to six results per store, with timeouts, five-minute search caching, and six-hour app caching at the edge. Both-store search can show partial results when one provider fails. The browser cancels stale searches. QR generation and the authentication client are lazy-loaded.
 
@@ -115,3 +117,4 @@ See [deployment guide](docs/deployment.md) for database setup, verification, pub
 - Signed release previews and automated deployment once repository deployment permissions are configured.
 
 PlayQR is independent of Google and Apple and is not affiliated with either store or the apps it lists.
+
