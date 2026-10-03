@@ -1,4 +1,7 @@
 const paths = {
+  compass: ["M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z", "m16 8-3 5-5 3 3-5 5-3Z"],
+  library: ["M3 4h4v16H3zM10 4h4v16h-4zM16 5l3-1 3 15-3 1-3-15Z"],
+  user: ["M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z", "M5 21v-2a7 7 0 0 1 14 0v2"],
   bookmark: ["M6 3h12v18l-6-4-6 4V3Z"],
   devices: ["M3 4h13v11H3zM7 19h5M9.5 15v4M18 9h4v12h-7V9h3Z"],
   lock: ["M5 10h14v11H5zM8 10V6a4 4 0 0 1 8 0v4M12 14v3"],

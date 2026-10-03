@@ -1219,6 +1219,9 @@ async function route() {
   else discover();
 }
 const prefersDark = matchMedia("(prefers-color-scheme: dark)");
+document.querySelectorAll(".header nav a[data-icon]").forEach((link) => {
+  link.prepend(symbol(link.dataset.icon, "nav-icon"));
+});
 function theme() {
   document.documentElement.dataset.theme =
     state.theme === "system"
@@ -1303,3 +1306,4 @@ void initAuth()
     ready = true;
     void route();
   });
+

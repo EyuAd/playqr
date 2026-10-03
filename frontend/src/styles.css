@@ -149,11 +149,17 @@ footer {
   margin-inline: auto;
 }
 .header {
-  height: 90px;
-  display: flex;
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 40px;
+  gap: 20px;
+  padding-block: 12px;
   border-bottom: 1px solid var(--line);
+}
+.header > .brand {
+  grid-column: 1;
+  grid-row: 1;
 }
 .brand {
   display: inline-flex;
@@ -185,33 +191,70 @@ footer {
 }
 .header nav {
   display: flex;
-  justify-content: center;
-  gap: 28px;
-  margin-left: auto;
-  height: 100%;
+  justify-self: end;
+  gap: 3px;
   align-items: center;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--wash);
   font-size: 0.82rem;
 }
 .header nav a {
-  height: 100%;
-  display: flex;
+  min-height: 44px;
+  display: inline-flex;
+  justify-content: center;
   align-items: center;
   position: relative;
-  gap: 5px;
+  gap: 8px;
+  padding: 9px 13px;
+  border-radius: 8px;
+  border: 1px solid transparent;
   color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
 }
-.header nav a:hover,
-.header nav a[aria-current] {
+.header nav a:hover {
   color: var(--ink);
+  background: var(--surface);
 }
-.header nav a[aria-current]::after {
-  content: "";
-  height: 2px;
-  background: var(--accent);
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
+.header nav a[aria-current="page"] {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: 0 1px 3px #0000000a;
+}
+.header nav a[aria-current="page"] .nav-icon {
+  color: var(--accent);
+}
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.header nav a:focus-visible {
+  outline-offset: 2px;
+  z-index: 1;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  border-left: 1px solid var(--line);
+  padding-left: 20px;
+}
+.header-actions .icon-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+.header-actions .symbol {
+  width: 20px;
+  height: 20px;
 }
 #collection-count:not(:empty) {
   background: var(--wash);
@@ -1946,6 +1989,16 @@ caption {
   footer {
     width: calc(100% - 64px);
   }
+  .header {
+    gap: 14px;
+  }
+  .header nav a {
+    padding-inline: 10px;
+    gap: 6px;
+  }
+  .header-actions {
+    padding-left: 14px;
+  }
   .hero {
     gap: 34px;
     grid-template-columns: 1.15fr 1fr;
@@ -2000,22 +2053,45 @@ caption {
     width: calc(100% - 40px);
   }
   .header {
-    height: auto;
-    min-height: 114px;
-    flex-wrap: wrap;
-    gap: 18px;
-    padding-top: 20px;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding-block: 8px;
   }
   .header nav {
-    order: 3;
+    grid-column: 1 / -1;
+    grid-row: 2;
     width: 100%;
-    height: 42px;
-    gap: 16px;
-    justify-content: space-between;
-    font-size: 0.77rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3px;
+    font-size: 0.7rem;
   }
-  #theme {
-    margin-left: auto;
+  .header nav a {
+    min-width: 0;
+    min-height: 52px;
+    flex-direction: column;
+    gap: 4px;
+    padding: 7px 2px;
+    line-height: 1.2;
+  }
+  .header-actions {
+    grid-column: 2;
+    grid-row: 1;
+    border: 0;
+    padding-left: 0;
+  }
+  .nav-icon {
+    width: 19px;
+    height: 19px;
+  }
+  .header #collection-count:not(:empty) {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    padding: 2px 4px;
+    font-size: 0.55rem;
+    border-radius: 4px;
   }
   .brand {
     font-size: 1.6rem;

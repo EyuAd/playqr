@@ -29,14 +29,25 @@
         >PlayQR<span class="brand-dot">.</span></a
       >
       <nav aria-label="Main navigation">
-        <a href="#discover">Discover</a
-        ><a href="#collections"
-          >Collections <span id="collection-count"></span></a
-        ><a href="#dashboard">Your library</a><a href="#account">Account</a>
+        <a href="#discover" data-icon="compass"
+          ><span class="nav-label">Discover</span></a
+        >
+        <a href="#collections" data-icon="stack"
+          ><span class="nav-label">Collections</span
+          ><span id="collection-count"></span
+        ></a>
+        <a href="#dashboard" data-icon="library"
+          ><span class="nav-label">Your library</span></a
+        >
+        <a href="#account" data-icon="user"
+          ><span class="nav-label">Account</span></a
+        >
       </nav>
-      <button id="theme" class="icon-button" aria-label="Switch color theme">
-        ◐
-      </button>
+      <div class="header-actions">
+        <button id="theme" class="icon-button" aria-label="Switch color theme">
+          ◐
+        </button>
+      </div>
     </header>
     <div id="offline" class="offline" hidden>
       You’re offline. Saved apps are available; search and sharing need a
@@ -78,3 +89,4 @@
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
+
