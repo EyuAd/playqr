@@ -1084,6 +1084,23 @@ select {
   font-size: 16px;
   min-width: 0;
 }
+/* Native menus need their own palette: some Windows browsers otherwise use
+   a white popup with the dark theme's inherited light text. */
+select {
+  color-scheme: inherit;
+}
+select option,
+select optgroup {
+  color: var(--ink);
+  background-color: var(--surface);
+}
+select option:checked {
+  color: var(--accent-fg);
+  background-color: var(--accent);
+}
+select option:disabled {
+  color: var(--muted);
+}
 textarea {
   width: 100%;
   resize: vertical;
