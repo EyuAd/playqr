@@ -8,7 +8,7 @@
     "ADDITIONAL_FRONTEND_ORIGINS": "https://eyuad.github.io,https://www.eyubuilds.tech",
     "SUPABASE_URL": "https://vsbptzyozoodmsyvvbxe.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_YVmOuUNJkOOcgcpRzR8XIg_gMEKOdBA",
-    "AUTH_READY": "false",
+    "AUTH_READY": "true",
   },
   "d1_databases": [
     {
@@ -26,3 +26,4 @@
     },
   ],
 }
+
