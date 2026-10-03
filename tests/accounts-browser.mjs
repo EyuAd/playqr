@@ -159,6 +159,31 @@ try {
       .count(),
     0,
   );
+  await first
+    .getByRole("button", { name: "Save public profile", exact: true })
+    .waitFor();
+  for (const width of [320, 390, 1440]) {
+    await first.setViewportSize({ width, height: 900 });
+    assert.equal(
+      await first.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      true,
+    );
+    assert.equal(
+      await first.locator(".account-workspace > .account-panel").count(),
+      2,
+    );
+  }
+  await first.screenshot({
+    path: "test-results/account-workspace-desktop.png",
+    fullPage: true,
+  });
+  await first.setViewportSize({ width: 390, height: 844 });
+  await first.screenshot({
+    path: "test-results/account-workspace-mobile.png",
+    fullPage: true,
+  });
   await first.getByRole("button", { name: "Sign out", exact: true }).click();
   await first
     .getByRole("button", { name: "Continue with Google", exact: true })
@@ -180,3 +205,4 @@ try {
 } finally {
   await browser.close();
 }
+

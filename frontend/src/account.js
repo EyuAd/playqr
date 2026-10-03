@@ -4,54 +4,126 @@ import { syncStatus, flush, initializeWorkspace } from "./sync.js";
 import { request } from "./api.js";
 import { state, save, ownerKey, guestLibrary } from "./storage.js";
 import { collectionCover } from "./collection-design.js";
+import { symbol } from "./symbols.js";
+
+function googleMark() {
+  const mark = el("span", { class: "google-mark", "aria-hidden": "true" });
+  mark.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.32 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.41 13.92a6 6 0 0 1 0-3.84V7.49H3.07a10 10 0 0 0 0 9.02l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.96c1.47 0 2.79.51 3.83 1.52l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.49l3.34 2.59A5.99 5.99 0 0 1 12 5.96Z"/></svg>`;
+  return mark;
+}
+
+function accountIntro() {
+  return el(
+    "div",
+    { class: "account-intro" },
+    el("p", { class: "eyebrow" }, "A HOME FOR YOUR GOOD FINDS"),
+    el("h1", {}, "Your library.", el("br"), el("em", {}, "Goes with you.")),
+    el(
+      "p",
+      { class: "lede" },
+      "Keep the apps you love and the collections you make. Pick up where you left off, on any device.",
+    ),
+    el(
+      "div",
+      { class: "library-preview", "aria-hidden": "true" },
+      el(
+        "div",
+        { class: "preview-caption" },
+        "THE GOOD STUFF, ALL TOGETHER",
+        symbol("arrow"),
+      ),
+      el("div", { class: "preview-sheet preview-sheet-back" }),
+      el(
+        "div",
+        { class: "preview-sheet preview-sheet-front" },
+        el(
+          "div",
+          { class: "preview-item" },
+          symbol("bookmark"),
+          el("span", {}, "Saved apps"),
+          el("span", { class: "preview-dot" }),
+        ),
+        el(
+          "div",
+          { class: "preview-item" },
+          symbol("stack"),
+          el("span", {}, "Your collections"),
+          symbol("arrow"),
+        ),
+        el(
+          "div",
+          { class: "preview-item" },
+          symbol("link"),
+          el("span", {}, "Links worth sharing"),
+          symbol("arrow"),
+        ),
+      ),
+      el(
+        "div",
+        { class: "preview-sync" },
+        symbol("devices"),
+        "One library. All your devices.",
+      ),
+    ),
+    el(
+      "p",
+      { class: "account-privacy small-note" },
+      symbol("lock"),
+      "Your favorites stay private. You choose what to share.",
+    ),
+  );
+}
+
 function guestOption() {
   return el(
     "div",
     { class: "guest-option" },
-    el("p", { class: "guest-option-label" }, "No account? No problem."),
+    el("p", { class: "guest-option-label" }, "Just looking around?"),
     el(
       "a",
       {
         href: "#discover",
-        class: "button secondary",
+        class: "guest-link",
         "aria-describedby": "guest-option-note",
       },
       "Continue as guest",
+      el("span", { "aria-hidden": "true" }, "→"),
     ),
     el(
       "p",
       { id: "guest-option-note", class: "small-note" },
-      "Search, save apps and build collections without signing in. Favorites and drafts stay in this browser, not across devices. Sign in later to import them into your account.",
+      "No sign-in needed. Your saves stay on this device; import them into an account later.",
     ),
   );
 }
 export async function accountPage(main, isCurrent, refresh) {
-  main.append(
-    heading(
-      "YOUR PLAYQR ACCOUNT",
-      "Good apps. Everywhere.",
-      "Your favorites, collection drafts and shared links, across devices.",
-    ),
-  );
   if (!auth) {
     main.append(
       el(
-        "section",
-        { class: "account-panel" },
-        el("h2", {}, "Sign-in setup is in progress"),
+        "div",
+        { class: "account-entry" },
+        accountIntro(),
         el(
-          "p",
-          { class: "small-note" },
-          authError ||
-            "Google and email sign-in will be available soon. You can use PlayQR as a guest right now.",
+          "section",
+          { class: "signin-card" },
+          el("h2", {}, "Make yourself at home"),
+          el(
+            "p",
+            { class: "small-note" },
+            authError ||
+              "Sign-in is being set up. Explore PlayQR as a guest in the meantime.",
+          ),
+          guestOption(),
         ),
-        guestOption(),
       ),
     );
     return;
   }
   if (!session) {
-    const status = el("p", { role: "status", class: "small-note" });
+    const status = el("p", {
+      role: "status",
+      class: "signin-status small-note",
+    });
     const email = el("input", {
       type: "email",
       required: true,
@@ -64,11 +136,17 @@ export async function accountPage(main, isCurrent, refresh) {
       { type: "submit", class: "button primary" },
       "Email me a sign-in link",
     );
+    send.append(symbol("arrow"));
     const form = el(
       "form",
-      { class: "account-form" },
-      el("label", {}, "Email address", email),
+      { class: "account-form signin-form" },
+      el("label", { class: "signin-email" }, "Email address", email),
       send,
+      el(
+        "p",
+        { class: "signin-note small-note" },
+        "No password. Just a secure link to your inbox.",
+      ),
       status,
     );
     form.addEventListener("submit", async (e) => {
@@ -89,42 +167,66 @@ export async function accountPage(main, isCurrent, refresh) {
         send.disabled = false;
       }
     });
+    const google = button(
+      "Continue with Google",
+      guard(async () => {
+        const { error } = await auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: redirectTo() },
+        });
+        if (error) throw error;
+      }),
+      "button google-button",
+    );
+    google.prepend(googleMark());
     main.append(
       el(
-        "section",
-        { class: "account-panel" },
-        button(
-          "Continue with Google",
-          guard(async () => {
-            const { error } = await auth.signInWithOAuth({
-              provider: "google",
-              options: { redirectTo: redirectTo() },
-            });
-            if (error) throw error;
-          }),
-          "button primary",
-        ),
+        "div",
+        { class: "account-entry" },
+        accountIntro(),
         el(
-          "p",
-          { class: "small-note" },
-          "Or use a secure email link. No password to remember.",
+          "section",
+          { class: "signin-card", "aria-labelledby": "signin-title" },
+          el("p", { class: "eyebrow" }, "YOUR PLAYQR ACCOUNT"),
+          el("h2", { id: "signin-title" }, "Make yourself at home"),
+          el(
+            "p",
+            { class: "signin-description" },
+            "Sign in or create an account. Same simple step.",
+          ),
+          google,
+          el(
+            "div",
+            { class: "signin-divider" },
+            el("span", {}, "or continue with email"),
+          ),
+          form,
+          guestOption(),
         ),
-        form,
-        guestOption(),
       ),
     );
     return;
   }
+  main.append(
+    heading(
+      "YOUR WORKSPACE",
+      "Your account",
+      "A little home for your library and the things you share.",
+    ),
+  );
+  const workspace = el("div", { class: "account-workspace" });
+  main.append(workspace);
   const sync = el("p", { class: "small-note", role: "status" }, syncStatus);
   const listener = () => {
     if (isCurrent()) sync.textContent = syncStatus;
     else window.removeEventListener("playqr:sync", listener);
   };
   window.addEventListener("playqr:sync", listener);
-  main.append(
+  workspace.append(
     el(
       "section",
-      { class: "account-panel" },
+      { class: "account-panel account-membership" },
+      el("p", { class: "eyebrow" }, symbol("devices"), "CONNECTED ACCOUNT"),
       el("h2", {}, session.user.email || "Your account"),
       sync,
       el(
@@ -248,7 +350,8 @@ export async function accountPage(main, isCurrent, refresh) {
     );
     const form = el(
       "form",
-      { class: "account-panel account-form" },
+      { class: "account-panel account-form account-profile" },
+      el("p", { class: "eyebrow" }, symbol("link"), "YOUR PUBLIC SPACE"),
       el("h2", {}, "Your public collection page"),
       el(
         "p",
@@ -286,7 +389,7 @@ export async function accountPage(main, isCurrent, refresh) {
         submit.disabled = false;
       }
     });
-    main.append(form);
+    workspace.append(form);
   } catch (e) {
     if (isCurrent()) main.append(empty("Profile could not load", e.message));
   }
@@ -333,3 +436,4 @@ export async function profilePage(main, handle, isCurrent) {
     if (isCurrent()) main.append(empty("Profile unavailable", e.message));
   }
 }
+

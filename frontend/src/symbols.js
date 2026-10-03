@@ -1,4 +1,7 @@
 const paths = {
+  bookmark: ["M6 3h12v18l-6-4-6 4V3Z"],
+  devices: ["M3 4h13v11H3zM7 19h5M9.5 15v4M18 9h4v12h-7V9h3Z"],
+  lock: ["M5 10h14v11H5zM8 10V6a4 4 0 0 1 8 0v4M12 14v3"],
   search: ["M21 21l-5-5", "M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"],
   arrow: ["M5 19 19 5M5 5h14v14"],
   moon: ["M20 15.1A8.5 8.5 0 0 1 8.9 4 8.5 8.5 0 1 0 20 15.1Z"],
@@ -35,3 +38,4 @@ export function symbol(name, className = "symbol") {
   }
   return svg;
 }
+

@@ -74,7 +74,16 @@ try {
         ),
         true,
       );
+      if (enabled) {
+        const card = await page.locator(".signin-card").boundingBox();
+        assert.ok(card.width <= 480, "Sign-in card must stay compact");
+        assert.equal(await page.locator(".google-mark svg").count(), 1);
+      }
     }
+    await page.screenshot({
+      path: `test-results/guest-${enabled ? "enabled" : "disabled"}-desktop.png`,
+      fullPage: true,
+    });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({
       path: `test-results/guest-${enabled ? "enabled" : "disabled"}-mobile.png`,
@@ -85,6 +94,12 @@ try {
       path: `test-results/guest-${enabled ? "enabled" : "disabled"}-dark.png`,
       fullPage: true,
     });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({
+      path: `test-results/guest-${enabled ? "enabled" : "disabled"}-desktop-dark.png`,
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
     // Empty required email input must not block the guest action.
     await choice.click();
     await page.waitForURL("**/#discover");
@@ -99,6 +114,26 @@ try {
     assert.deepEqual(authRequests, []);
     assert.deepEqual(cloudRequests, []);
     assert.deepEqual(errors, []);
+    if (enabled) {
+      let emailRequest;
+      await page.route("https://fixture.supabase.co/auth/v1/otp**", (route) => {
+        emailRequest = route.request().postDataJSON();
+        return route.fulfill({ status: 200, json: {} });
+      });
+      await page.getByRole("link", { name: "Account", exact: true }).click();
+      await page
+        .getByRole("textbox", { name: "Email address" })
+        .fill("test@example.com");
+      await page
+        .getByRole("button", { name: "Email me a sign-in link", exact: true })
+        .click();
+      await page
+        .getByRole("status")
+        .filter({ hasText: "Check your inbox" })
+        .waitFor();
+      assert.equal(emailRequest.email, "test@example.com");
+      assert.ok(emailRequest.code_challenge, "Email sign-in must retain PKCE");
+    }
     await context.close();
   }
   console.log(
@@ -107,3 +142,4 @@ try {
 } finally {
   await browser.close();
 }
+

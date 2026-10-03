@@ -1374,40 +1374,359 @@ input[type="checkbox"] {
   color: var(--accent);
   margin-bottom: 8px;
 }
-.account-panel {
-  padding: 30px;
+.account-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
+  gap: clamp(40px, 7vw, 100px);
+  align-items: center;
+  max-width: 1080px;
+  margin: 64px auto 80px;
+}
+.account-intro .eyebrow {
+  color: var(--accent);
+  margin-bottom: 24px;
+}
+.account-intro h1 {
+  font-size: clamp(2.8rem, 4.5vw, 4rem);
+  letter-spacing: -0.055em;
+  line-height: 1.08;
+  margin-bottom: 22px;
+}
+.account-intro h1 em {
+  letter-spacing: -0.025em;
+}
+.account-intro .lede {
+  max-width: 380px;
+  font-size: 0.98rem;
+  margin-bottom: 30px;
+}
+.library-preview {
+  position: relative;
+  width: min(100%, 390px);
+  height: 255px;
+  margin-bottom: 22px;
+}
+.preview-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 0.58rem var(--mono);
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  padding-right: 10px;
+}
+.preview-caption .symbol {
+  width: 17px;
+  height: 17px;
+}
+.preview-sheet {
+  position: absolute;
+  inset: 43px 26px 37px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.preview-sheet-back {
+  transform: translate(13px, -5px) rotate(4deg);
+  background: var(--tint);
+  border-color: var(--accent);
+}
+.preview-sheet-front {
+  padding: 6px 20px;
+  transform: rotate(-2deg);
+  box-shadow: 0 8px 20px #00000008;
+  transition: transform 0.2s;
+}
+.library-preview:hover .preview-sheet-front {
+  transform: rotate(0deg) translateY(-3px);
+}
+.preview-item {
+  min-height: 53px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.85rem;
+}
+.preview-item + .preview-item {
+  border-top: 1px solid var(--line);
+}
+.preview-item > .symbol:first-child {
+  color: var(--accent);
+  width: 20px;
+  height: 20px;
+}
+.preview-item > :last-child {
+  margin-left: auto;
+}
+.preview-item > .symbol:last-child {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+}
+.preview-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.preview-sync {
+  position: absolute;
+  bottom: 0;
+  left: 22px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font: 0.64rem var(--mono);
+  color: var(--muted);
+}
+.preview-sync .symbol {
+  width: 19px;
+}
+.account-privacy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+}
+.account-privacy .symbol {
+  width: 15px;
+  height: 15px;
+}
+.signin-card {
+  padding: 32px;
   border: 1px solid var(--line);
   background: var(--surface);
-  border-top: 3px solid var(--accent);
-  max-width: 740px;
-  margin: 25px 0;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px #00000005;
 }
-.account-panel h3 {
-  margin-top: 25px;
+.signin-card > .eyebrow {
+  color: var(--muted);
+  font-size: 0.58rem;
+  margin-bottom: 15px;
 }
-.account-panel > .button {
+.signin-card h2 {
+  font-size: 1.7rem;
+  margin-bottom: 10px;
+}
+.signin-description {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin-bottom: 27px;
+}
+.signin-card .button {
   width: 100%;
+  min-height: 48px;
+  border-radius: 8px;
+}
+.google-button {
+  background: #fff;
+  color: #25272d;
+  border-color: #d4d6dc;
+}
+.google-button:hover:not(:disabled) {
+  background: #f7f8fa;
+  color: #25272d;
+  border-color: #969ba8;
+}
+.google-mark,
+.google-mark svg {
+  display: block;
+  width: 19px;
+  height: 19px;
+}
+.google-mark {
+  margin-right: 4px;
+}
+.signin-divider {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin: 24px 0;
+}
+.signin-divider::before,
+.signin-divider::after {
+  content: "";
+  height: 1px;
+  background: var(--line);
+  flex: 1;
 }
 .account-form {
   display: grid;
   gap: 18px;
 }
+.signin-form {
+  gap: 14px;
+}
+.signin-email {
+  display: grid;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.signin-email input {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+.signin-form .primary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+  justify-content: space-between;
+  padding-inline: 16px;
+}
+.signin-form .primary .symbol {
+  width: 17px;
+  height: 17px;
+}
+.signin-note {
+  font-size: 0.7rem;
+  text-align: center;
+  margin: 0;
+}
+.signin-status {
+  margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--tint);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.signin-status:empty {
+  display: none;
+}
 .guest-option {
   display: grid;
-  gap: 12px;
-  margin-top: 24px;
-  padding-top: 24px;
+  grid-template-columns: 1fr auto;
+  gap: 10px 8px;
+  margin-top: 26px;
+  padding-top: 22px;
   border-top: 1px solid var(--line);
+  align-items: center;
 }
 .guest-option p {
   margin: 0;
 }
 .guest-option-label {
-  font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.75rem;
+  color: var(--muted);
 }
-.guest-option > .button {
+.guest-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 0.77rem;
+  font-weight: 500;
+}
+.guest-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.guest-option .small-note {
+  grid-column: 1 / -1;
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+.account-workspace {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+  max-width: 1080px;
+}
+.account-panel {
+  padding: 28px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 12px;
+  min-width: 0;
+  margin: 0;
+}
+.account-panel h2 {
+  font-size: 1.3rem;
+  overflow-wrap: anywhere;
+}
+.account-panel .eyebrow {
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.account-panel .eyebrow .symbol {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+.account-profile > .eyebrow,
+.account-profile h2,
+.account-profile > p {
+  margin-bottom: 0;
+}
+.account-panel h3 {
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 1px solid var(--line);
+  font-size: 1.1rem;
+}
+.account-panel > .button {
   width: 100%;
+}
+@media (max-width: 850px) {
+  .account-entry {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    max-width: 480px;
+    margin: 36px auto 48px;
+  }
+  .account-intro .eyebrow {
+    margin-bottom: 16px;
+  }
+  .account-intro h1 {
+    font-size: 2.9rem;
+    margin-bottom: 16px;
+  }
+  .account-intro .lede {
+    font-size: 0.9rem;
+    margin-bottom: 0;
+  }
+  .library-preview,
+  .account-privacy {
+    display: none;
+  }
+  .account-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 480px) {
+  .signin-card {
+    padding: 24px 20px;
+    border-radius: 12px;
+  }
+  .signin-card h2 {
+    font-size: 1.45rem;
+  }
+  .guest-option {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .guest-link {
+    justify-content: flex-start;
+  }
+  .account-intro h1 {
+    font-size: clamp(2.4rem, 9vw, 2.9rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .preview-sheet-front {
+    transition: none;
+  }
 }
 .library-account {
   margin-top: 26px;
@@ -2098,3 +2417,4 @@ caption {
     scroll-behavior: auto !important;
   }
 }
+
