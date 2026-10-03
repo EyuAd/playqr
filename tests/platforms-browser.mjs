@@ -18,7 +18,7 @@ try {
     (key) => localStorage.setItem("playqr-owner", key),
     owner,
   );
-  await page.goto(site);
+  await page.goto(site, { waitUntil: "domcontentloaded" });
   await page
     .getByRole("combobox", { name: "App store", exact: true })
     .selectOption("ios");
@@ -31,6 +31,16 @@ try {
   assert.equal(
     await page.locator(".platform-badge").first().textContent(),
     "App Store",
+  );
+  await page
+    .locator(".app-card img")
+    .first()
+    .evaluate((image) => image.decode());
+  assert.ok(
+    await page
+      .locator(".app-card img")
+      .first()
+      .evaluate((image) => image.naturalWidth > 0),
   );
   await page.locator(".app-open").first().click();
   await page
@@ -86,7 +96,9 @@ try {
   ).json();
   assert.ok(col.code);
   created.push(col.code);
-  await page.goto(site + "#share/" + col.code);
+  await page.goto(site + "#share/" + col.code, {
+    waitUntil: "domcontentloaded",
+  });
   await page
     .getByRole("button", { name: "Save a copy to my collections" })
     .waitFor();
@@ -136,7 +148,9 @@ try {
     fullPage: true,
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto(site + "#share/" + col.code);
+  await page.goto(site + "#share/" + col.code, {
+    waitUntil: "domcontentloaded",
+  });
   await page
     .getByRole("button", { name: "Save a copy to my collections" })
     .waitFor();
@@ -153,3 +167,4 @@ try {
   for (const code of created)
     await fetch(api + "/links/" + code, { method: "DELETE", headers });
 }
+
