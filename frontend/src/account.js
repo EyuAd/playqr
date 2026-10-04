@@ -207,16 +207,16 @@ export async function accountPage(main, isCurrent, refresh) {
     );
     return;
   }
-  main.append(
-    heading(
-      "YOUR WORKSPACE",
-      "Your account",
-      "A little home for your library and the things you share.",
-    ),
+  const accountHeading = heading(
+    "ACCOUNT SETTINGS",
+    "Your account",
+    "Your public profile. Your private library. All in one place.",
   );
+  accountHeading.classList.add("account-settings-heading");
+  main.append(accountHeading);
   const workspace = el("div", { class: "account-workspace" });
   main.append(workspace);
-  const sync = el("p", { class: "small-note", role: "status" }, syncStatus);
+  const sync = el("p", { class: "account-sync", role: "status" }, syncStatus);
   const listener = () => {
     if (isCurrent()) sync.textContent = syncStatus;
     else window.removeEventListener("playqr:sync", listener);
@@ -226,12 +226,29 @@ export async function accountPage(main, isCurrent, refresh) {
     el(
       "section",
       { class: "account-panel account-membership" },
-      el("p", { class: "eyebrow" }, symbol("devices"), "CONNECTED ACCOUNT"),
-      el("h2", {}, session.user.email || "Your account"),
+      el(
+        "div",
+        { class: "account-identity" },
+        el(
+          "span",
+          { class: "account-avatar", "aria-hidden": "true" },
+          (session.user.email || "P").slice(0, 1).toUpperCase(),
+        ),
+        el(
+          "div",
+          {},
+          el("h2", {}, "Connected account"),
+          el(
+            "p",
+            { class: "account-email" },
+            session.user.email || "Signed in",
+          ),
+        ),
+      ),
       sync,
       el(
         "div",
-        { class: "detail-actions" },
+        { class: "account-tools" },
         button(
           "Sync now",
           guard(async () => {
@@ -272,48 +289,59 @@ export async function accountPage(main, isCurrent, refresh) {
           }),
         ),
       ),
-      el("h3", {}, "Bring your browser library with you"),
+      el(
+        "div",
+        { class: "account-import" },
+        el("p", { class: "eyebrow" }, symbol("archive"), "ON THIS DEVICE"),
+        el("h3", {}, "Bring your guest saves along"),
+        el(
+          "p",
+          { class: "small-note" },
+          "Import this browser’s guest saves and drafts. Existing shared links transfer to your account and keep working.",
+        ),
+        button(
+          "Import browser library",
+          guard(async () => {
+            const guest = guestLibrary();
+            const favorites = [
+              ...new Map(
+                [...guest.favorites, ...state.favorites].map((a) => [a.id, a]),
+              ).values(),
+            ];
+            const collections = [
+              ...new Map(
+                [...guest.collections, ...state.collections].map((c) => [
+                  c.id,
+                  c,
+                ]),
+              ).values(),
+            ];
+            if (favorites.length > 100 || collections.length > 100)
+              throw new Error(
+                "Import would exceed the limit of 100 favorites or collections.",
+              );
+            await request("/account/claim", {
+              method: "POST",
+              privateAccess: true,
+              data: { guestKey: ownerKey() },
+            });
+            state.favorites = favorites;
+            state.collections = collections;
+            if (!save())
+              throw new Error("Could not save imported drafts on this device.");
+            await flush();
+            toast(
+              "Browser library imported. Shared links now belong to your account.",
+            );
+            refresh();
+          }),
+        ),
+      ),
       el(
         "p",
-        { class: "small-note" },
-        "Imports saved apps and drafts, and transfers ownership of this browser’s shared links to your account. Links keep working.",
-      ),
-      button(
-        "Import browser library",
-        guard(async () => {
-          const guest = guestLibrary();
-          const favorites = [
-            ...new Map(
-              [...guest.favorites, ...state.favorites].map((a) => [a.id, a]),
-            ).values(),
-          ];
-          const collections = [
-            ...new Map(
-              [...guest.collections, ...state.collections].map((c) => [
-                c.id,
-                c,
-              ]),
-            ).values(),
-          ];
-          if (favorites.length > 100 || collections.length > 100)
-            throw new Error(
-              "Import would exceed the limit of 100 favorites or collections.",
-            );
-          await request("/account/claim", {
-            method: "POST",
-            privateAccess: true,
-            data: { guestKey: ownerKey() },
-          });
-          state.favorites = favorites;
-          state.collections = collections;
-          if (!save())
-            throw new Error("Could not save imported drafts on this device.");
-          await flush();
-          toast(
-            "Browser library imported. Shared links now belong to your account.",
-          );
-          refresh();
-        }),
+        { class: "account-private-note small-note" },
+        symbol("lock"),
+        "Favorites, drafts and visit counts are only visible to you.",
       ),
     ),
   );
@@ -339,7 +367,12 @@ export async function accountPage(main, isCurrent, refresh) {
     });
     const bio = el(
       "textarea",
-      { maxlength: 300, "aria-label": "Profile bio" },
+      {
+        maxlength: 300,
+        rows: 3,
+        "aria-label": "Profile bio",
+        placeholder: "A few words about you and the apps you collect.",
+      },
       profile?.bio || "",
     );
     const message = el("p", { role: "status", class: "small-note" });
@@ -348,30 +381,104 @@ export async function accountPage(main, isCurrent, refresh) {
       { type: "submit", class: "button primary" },
       "Save public profile",
     );
-    const form = el(
-      "form",
-      { class: "account-panel account-form account-profile" },
-      el("p", { class: "eyebrow" }, symbol("link"), "YOUR PUBLIC SPACE"),
-      el("h2", {}, "Your public collection page"),
-      el(
-        "p",
-        { class: "small-note" },
-        "Your name and bio are public. Only collections you explicitly list appear here. Favorites, drafts and analytics stay private.",
-      ),
-      el("label", {}, "Handle", handle),
-      el("label", {}, "Display name", name),
-      el("label", {}, "Bio", bio),
-      submit,
-      message,
+    const previewName = el("strong", {}, profile?.name || "Your display name");
+    const previewHandle = el(
+      "span",
+      {},
+      "@" + (profile?.handle || "your-name"),
     );
+    const previewAvatar = el(
+      "span",
+      { class: "account-avatar", "aria-hidden": "true" },
+      (profile?.name || session.user.email || "P").slice(0, 1).toUpperCase(),
+    );
+    const bioCount = el(
+      "span",
+      { class: "field-counter" },
+      `${bio.value.length}/300`,
+    );
+    const updatePreview = () => {
+      previewName.textContent = name.value.trim() || "Your display name";
+      previewHandle.textContent = "@" + (handle.value || "your-name");
+      previewAvatar.textContent = (
+        name.value.trim() ||
+        session.user.email ||
+        "P"
+      )
+        .slice(0, 1)
+        .toUpperCase();
+      bioCount.textContent = `${bio.value.length}/300`;
+    };
+    [name, handle, bio].forEach((input) =>
+      input.addEventListener("input", updatePreview),
+    );
+    const footer = el("div", { class: "profile-form-footer" }, submit);
     if (profile)
-      form.append(
+      footer.append(
         el(
           "a",
           { href: "#profile/" + profile.handle, class: "text-link" },
           "View public profile ↗",
         ),
       );
+    const form = el(
+      "form",
+      { class: "account-panel account-form account-profile" },
+      el("p", { class: "eyebrow" }, symbol("user"), "YOUR PUBLIC SPACE"),
+      el("h2", {}, "Public profile"),
+      el(
+        "p",
+        { class: "small-note" },
+        "Introduce yourself on your collection page. Only collections you choose to list are shown there.",
+      ),
+      el(
+        "div",
+        { class: "profile-preview", "aria-label": "Public profile preview" },
+        previewAvatar,
+        el(
+          "div",
+          { class: "profile-preview-text" },
+          previewName,
+          previewHandle,
+        ),
+        el("span", { class: "profile-preview-label" }, "PREVIEW"),
+      ),
+      el(
+        "div",
+        { class: "profile-fields" },
+        el("label", {}, "Display name", name),
+        el(
+          "label",
+          {},
+          "Public handle",
+          el(
+            "span",
+            { class: "handle-input" },
+            el("span", { "aria-hidden": "true" }, "@"),
+            handle,
+          ),
+          el(
+            "span",
+            { class: "field-hint" },
+            "3–24 lowercase letters, numbers or hyphens.",
+          ),
+        ),
+      ),
+      el(
+        "label",
+        { class: "bio-field" },
+        el("span", { class: "field-label" }, "Bio", bioCount),
+        bio,
+      ),
+      el(
+        "p",
+        { class: "profile-privacy small-note" },
+        symbol("lock"),
+        "Your library and analytics stay private.",
+      ),
+      footer,
+      message,
+    );
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       submit.disabled = true;
@@ -389,7 +496,7 @@ export async function accountPage(main, isCurrent, refresh) {
         submit.disabled = false;
       }
     });
-    workspace.append(form);
+    workspace.prepend(form);
   } catch (e) {
     if (isCurrent()) main.append(empty("Profile could not load", e.message));
   }
@@ -436,4 +543,3 @@ export async function profilePage(main, handle, isCurrent) {
     if (isCurrent()) main.append(empty("Profile unavailable", e.message));
   }
 }
-

@@ -1,4 +1,4 @@
-import { chromium } from "@playwright/test";
+import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import jsQR from "jsqr";
 const browser = await chromium.launch({
@@ -23,6 +23,18 @@ const notes = {
   developer: "Test data",
 };
 try {
+  // This is a UI regression test, not an upstream store availability test.
+  await page.route("**/auth/config", (route) =>
+    route.fulfill({ json: { enabled: false } }),
+  );
+  await page.route(/\/app\?/, (route) =>
+    route.fulfill({
+      json: { app: { ...app, description: "Music and podcasts." } },
+    }),
+  );
+  await page.route("**/library", (route) =>
+    route.fulfill({ json: { links: [] } }),
+  );
   await page.addInitScript(
     ({ app, notes }) => {
       if (!localStorage.getItem("playqr-product-test")) {
@@ -69,12 +81,9 @@ try {
   await page.waitForFunction(
     () => location.hash !== "#collection/11111111-1111-4111-8111-111111111111",
   );
-  assert.equal(
-    await page
-      .getByRole("textbox", { name: "Collection title", exact: true })
-      .inputValue(),
-    "My Android setup (copy)",
-  );
+  await expect(
+    page.getByRole("textbox", { name: "Collection title", exact: true }),
+  ).toHaveValue("My Android setup (copy)");
   await page.getByRole("button", { name: "Delete draft", exact: true }).click();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   assert.equal(await page.locator(".collection-row").count(), 2);
@@ -92,10 +101,13 @@ try {
     { waitUntil: "domcontentloaded" },
   );
   await page.getByRole("button", { name: "Create share card" }).click();
-  const download = page.getByRole("button", { name: "Download card" });
+  const download = page.getByRole("button", {
+    name: "Download card · PNG",
+    exact: true,
+  });
   await download.waitFor();
   await page.waitForFunction(
-    () => !document.querySelector(".share-card-dialog > button").disabled,
+    () => !document.querySelector(".card-export-actions > button").disabled,
   );
   const canvas = page.locator(".share-card-preview");
   const pixels = await canvas.evaluate((c) => ({

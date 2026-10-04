@@ -103,7 +103,14 @@ async function pageForAccount() {
       }
       return respond(cloud);
     }
-    if (path === "/account/profile") return respond({ profile: null });
+    if (path === "/account/profile")
+      return respond({
+        profile: {
+          handle: "library-curator",
+          name: "Library curator",
+          bio: "Good apps, kept together.",
+        },
+      });
     if (path === "/library") return respond({ links: [] });
     return route.continue();
   });
@@ -162,7 +169,20 @@ try {
   await first
     .getByRole("button", { name: "Save public profile", exact: true })
     .waitFor();
-  for (const width of [320, 390, 1440]) {
+  const displayName = first.getByRole("textbox", {
+    name: "Display name",
+    exact: true,
+  });
+  await displayName.fill("Updated preview");
+  assert.equal(
+    await first.locator(".profile-preview strong").innerText(),
+    "Updated preview",
+  );
+  await first
+    .getByRole("textbox", { name: "Profile bio", exact: true })
+    .fill("A new bio");
+  assert.equal(await first.locator(".field-counter").innerText(), "9/300");
+  for (const width of [320, 390, 768, 1440]) {
     await first.setViewportSize({ width, height: 900 });
     assert.equal(
       await first.evaluate(
@@ -177,6 +197,18 @@ try {
   }
   await first.screenshot({
     path: "test-results/account-workspace-desktop.png",
+    fullPage: true,
+  });
+  await first
+    .getByRole("button", { name: "Switch to dark mode", exact: true })
+    .click();
+  await first.screenshot({
+    path: "test-results/account-workspace-dark-mobile.png",
+    fullPage: true,
+  });
+  await first.setViewportSize({ width: 1440, height: 900 });
+  await first.screenshot({
+    path: "test-results/account-workspace-dark-desktop.png",
     fullPage: true,
   });
   await first.setViewportSize({ width: 390, height: 844 });
@@ -205,4 +237,3 @@ try {
 } finally {
   await browser.close();
 }
-

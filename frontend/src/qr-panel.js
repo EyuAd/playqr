@@ -1,4 +1,5 @@
-import { el, button, copy, share, guard } from "./ui.js";
+import { el, button, copy, guard } from "./ui.js";
+import { openShareVia } from "./sharing.js";
 export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
   const panel = el(
     "section",
@@ -43,9 +44,8 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
       guard(() => copy(destination)),
       "button primary",
     ),
-    button(
-      "Share ↗",
-      guard(() => share(title, destination)),
+    button("Share via", () =>
+      openShareVia({ title, url: destination, createCard }),
     ),
   );
   const downloads = el(
@@ -67,18 +67,19 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
     ),
   );
   panel.append(qrStage, caption, controls, downloads, link, error);
+  async function createCard() {
+    const { openShareCard } = await import("./share-card.js");
+    await openShareCard({
+      title,
+      url: destination,
+      settings: { ...settings },
+      ...card,
+    });
+  }
   panel.append(
     button(
       "Create share card ↗",
-      guard(async () => {
-        const { openShareCard } = await import("./share-card.js");
-        await openShareCard({
-          title,
-          url: destination,
-          settings: { ...settings },
-          ...card,
-        });
-      }),
+      guard(createCard),
       "button share-card-button",
     ),
     el(

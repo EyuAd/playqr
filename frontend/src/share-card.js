@@ -1,6 +1,9 @@
 import { renderQR } from "./qr.js";
 import { imageUrl, validateQR } from "../../shared/domain.js";
-import { el, button, guard } from "./ui.js";
+import { el, button, guard, copy, toast } from "./ui.js";
+import { shareChoices, dialogHeader, showShareDialog } from "./sharing.js";
+import { cardFilename } from "./share-links.js";
+import { symbol } from "./symbols.js";
 
 function loadIcon(url) {
   return new Promise((resolve) => {
@@ -134,6 +137,17 @@ export async function openShareCard(options) {
     class: "dialog share-card-dialog",
     "aria-labelledby": "share-card-title",
   });
+  const saveBlob = (blob, extension) => {
+    const url = URL.createObjectURL(blob);
+    const a = el("a", {
+      href: url,
+      download: cardFilename(options.title, extension),
+    });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
   const download = button(
     "Download card · PNG",
     guard(async () => {
@@ -141,37 +155,87 @@ export async function openShareCard(options) {
         canvas.toBlob(resolve, "image/png"),
       );
       if (!blob) throw new Error("The card could not be exported.");
-      const url = URL.createObjectURL(blob),
-        a = el("a", {
-          href: url,
-          download: `playqr-card-${options.title.replace(/[^a-z0-9]/gi, "-").slice(0, 60)}.png`,
-        });
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      saveBlob(blob, "png");
+    }),
+    "button",
+  );
+  download.disabled = true;
+  let pdfFile;
+  const pdfStatus = el(
+    "p",
+    { class: "small-note", role: "status" },
+    "Preparing PDF…",
+  );
+  const pdf = button("Download card · PDF", () => saveBlob(pdfFile, "pdf"));
+  const sharePDF = button(
+    "Share PDF",
+    guard(async () => {
+      if (navigator.canShare?.({ files: [pdfFile] })) {
+        try {
+          await navigator.share({ files: [pdfFile], title: options.title });
+        } catch (error) {
+          if (error.name !== "AbortError") throw error;
+        }
+      } else {
+        saveBlob(pdfFile, "pdf");
+        toast("PDF downloaded. Attach it in your preferred app.");
+      }
     }),
     "button primary",
   );
-  download.disabled = true;
+  pdf.disabled = sharePDF.disabled = true;
+  download.prepend(symbol("download"));
+  pdf.prepend(symbol("download"));
   dialog.append(
+    dialogHeader("Pass it on.", dialog, "share-card-title"),
     el(
       "div",
-      { class: "section-heading" },
-      el("h2", { id: "share-card-title" }, "Ready to share."),
-      button("Close", () => dialog.close(), "text-button"),
+      { class: "share-card-layout" },
+      el("div", { class: "card-preview-stage" }, canvas),
+      el(
+        "div",
+        { class: "card-share-tools" },
+        el("p", { class: "eyebrow" }, "SHARE THE LINK"),
+        el("h3", {}, options.title),
+        shareChoices(options.title, options.url),
+        button(
+          "Copy link",
+          guard(() => copy(options.url)),
+          "button card-copy",
+        ),
+        el(
+          "div",
+          { class: "card-export" },
+          el("p", { class: "eyebrow" }, "OR SHARE THE QR CARD"),
+          el("div", { class: "card-export-actions" }, download, pdf, sharePDF),
+          status,
+          pdfStatus,
+        ),
+      ),
     ),
-    canvas,
-    status,
-    download,
   );
-  document.body.append(dialog);
-  dialog.addEventListener("close", () => dialog.remove());
-  dialog.showModal();
+  showShareDialog(dialog);
   try {
     const { omitted } = await renderShareCard(canvas, options);
     status.textContent = `${canvas.width} × ${canvas.height} PNG · ${omitted ? "Some icons couldn’t load; the QR still works." : "Original artwork. Scan-ready QR."}`;
     download.disabled = false;
+    try {
+      const { cardPDF } = await import("./card-pdf.js");
+      const blob = cardPDF(canvas, options.title, options.url);
+      pdfFile = new File([blob], cardFilename(options.title, "pdf"), {
+        type: "application/pdf",
+      });
+      pdf.disabled = sharePDF.disabled = false;
+      pdfStatus.textContent = navigator.canShare?.({ files: [pdfFile] })
+        ? "PDF opens your device’s share sheet."
+        : "PDF downloads here; attach it in any app.";
+    } catch {
+      pdfStatus.textContent =
+        "PDF export could not load. Retry the card, or use PNG.";
+    }
   } catch {
     status.textContent =
       "The card could not be generated. Close this preview and try again.";
+    pdfStatus.textContent = "";
   }
 }

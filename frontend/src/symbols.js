@@ -1,4 +1,13 @@
 const paths = {
+  close: ["M6 6l12 12M6 18 18 6"],
+  x: ["M4 3h4l12 18h-4L4 3ZM20 3 4 21"],
+  telegram: ["m21 3-7 18-4-8-8-4 19-6ZM10 13l11-10"],
+  whatsapp: [
+    "M21 11.5a9 9 0 0 1-13.7 7.7L3 21l1.8-4.3A9 9 0 1 1 21 11.5Z",
+    "m8 7 2 3-1 1c1 2 2 3 4 4l1-1 3 2c-1 3-4 2-7-1s-4-6-2-8Z",
+  ],
+  mail: ["M3 5h18v14H3V5Zm0 1 9 7 9-7"],
+  download: ["M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"],
   compass: ["M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z", "m16 8-3 5-5 3 3-5 5-3Z"],
   library: ["M3 4h4v16H3zM10 4h4v16h-4zM16 5l3-1 3 15-3 1-3-15Z"],
   user: ["M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z", "M5 21v-2a7 7 0 0 1 14 0v2"],
@@ -41,4 +50,3 @@ export function symbol(name, className = "symbol") {
   }
   return svg;
 }
-

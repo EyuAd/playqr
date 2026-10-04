@@ -14,6 +14,7 @@ Search by app name or paste a Google Play / App Store listing. Choose the correc
 
 - Debounced, cached Google Play and Apple App Store search, store filters, original artwork, keyboard navigation, and explicit empty/error states.
 - App-detail pages with direct store links and locally generated PNG/SVG QR downloads.
+- Share via X, Telegram, WhatsApp or email; export QR cards as PNG or clickable PDF, with device file-sharing where supported. No third-party sharing SDKs or automatic posts.
 - High-contrast QR palettes, light backgrounds, three export sizes, and reset controls.
 - Smart links: manually confirm matching versions to route Android to Google Play and iPhone to the App Store. Other devices or unavailable platforms see a share page.
 - Collections: up to 20 apps across both stores, themed covers, categories, curator notes, public snapshots and editable copies of shared collections.
@@ -117,4 +118,3 @@ See [deployment guide](docs/deployment.md) for database setup, verification, pub
 - Signed release previews and automated deployment once repository deployment permissions are configured.
 
 PlayQR is independent of Google and Apple and is not affiliated with either store or the apps it lists.
-

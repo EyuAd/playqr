@@ -102,7 +102,7 @@ try {
     await page.setViewportSize({ width: 390, height: 844 });
     // Empty required email input must not block the guest action.
     await choice.click();
-    await page.waitForURL("**/#discover");
+    await page.waitForURL("**/#discover", { waitUntil: "domcontentloaded" });
     await page.getByRole("link", { name: "Your library", exact: true }).click();
     await page.getByText("Guest-only favorite", { exact: true }).waitFor();
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -142,4 +142,3 @@ try {
 } finally {
   await browser.close();
 }
-

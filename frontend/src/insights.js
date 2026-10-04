@@ -223,9 +223,13 @@ export function privacy(main) {
       el(
         "p",
         {},
+        "PNG and PDF cards are created on your device. Social sharing opens the service you select with the title and public link; nothing is posted automatically. Sharing a PDF uses your device’s share sheet when available, or downloads the file for you to attach.",
+      ),
+      el(
+        "p",
+        {},
         "Google Play and Apple supply public app metadata and icons. App Store searches and app lookups go directly from your browser to Apple, without your PlayQR account credentials. Google Play searches and shared-link metadata use the Cloudflare backend. Your browser downloads icons from the stores and fonts from Google. Supabase handles Google/email authentication when enabled; your email and sign-in session are processed by that service. PlayQR never handles your Google password. Account libraries are stored on Cloudflare. QR codes are generated locally. GitHub Pages, Cloudflare and authentication providers may process infrastructure logs under their own policies.",
       ),
     ),
   );
 }
-
