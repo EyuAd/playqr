@@ -118,7 +118,7 @@ async function pageForAccount() {
 }
 try {
   const first = await pageForAccount();
-  await first.goto("http://127.0.0.1:5173/#dashboard");
+  await first.goto("http://127.0.0.1:5173/#dashboard", { waitUntil: "commit" });
   await first.getByText("Account-only favorite", { exact: true }).waitFor();
   assert.equal(
     await first.getByText("Guest-only favorite", { exact: true }).count(),
@@ -137,7 +137,7 @@ try {
   );
   assert.equal(cloud.data.collections[0].title, "Synced draft");
   const second = await pageForAccount();
-  await second.goto("http://127.0.0.1:5173/#collections");
+  await second.goto("http://127.0.0.1:5173/#collections", { waitUntil: "commit" });
   await second
     .getByRole("heading", { name: "Synced draft", exact: true })
     .waitFor();
@@ -182,40 +182,83 @@ try {
     .getByRole("textbox", { name: "Profile bio", exact: true })
     .fill("A new bio");
   assert.equal(await first.locator(".field-counter").innerText(), "9/300");
-  for (const width of [320, 390, 768, 1440]) {
-    await first.setViewportSize({ width, height: 900 });
-    assert.equal(
-      await first.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-      true,
-    );
-    assert.equal(
-      await first.locator(".account-workspace > .account-panel").count(),
-      2,
-    );
+  for (const theme of ["light", "dark"]) {
+    if ((await first.locator("html").getAttribute("data-theme")) !== theme)
+      await first
+        .getByRole("button", { name: `Switch to ${theme} mode`, exact: true })
+        .click();
+    for (const width of [320, 390, 430, 768, 850, 851, 1024, 1440, 1920]) {
+      await first.setViewportSize({ width, height: 900 });
+      const layout = await first.evaluate(() => {
+        const box = (node) => node.getBoundingClientRect().toJSON();
+        const workspace = document.querySelector(".account-workspace");
+        return {
+          fits: document.documentElement.scrollWidth <= innerWidth,
+          workspace: box(workspace),
+          panels: [...workspace.children].map(box),
+          controls: [
+            ...workspace.querySelectorAll("input, textarea, button"),
+          ].map(box),
+          inputFonts: [...workspace.querySelectorAll("input, textarea")].map(
+            (n) => parseFloat(getComputedStyle(n).fontSize),
+          ),
+        };
+      });
+      assert.ok(
+        layout.fits,
+        `${width}px ${theme}: no horizontal page overflow`,
+      );
+      assert.equal(layout.panels.length, 2);
+      assert.ok(
+        Math.abs(layout.workspace.x - (width - layout.workspace.right)) < 2,
+        "Account workspace is centered",
+      );
+      for (const box of layout.controls) {
+        assert.ok(
+          box.width > 0 && box.height >= 44,
+          "Controls remain usable and touch-sized",
+        );
+        assert.ok(
+          box.x >= layout.workspace.x && box.right <= layout.workspace.right,
+          "Controls stay inside the account workspace",
+        );
+      }
+      assert.ok(
+        layout.inputFonts.every((size) => size >= 16),
+        "Inputs avoid iPhone focus zoom",
+      );
+      const [profile, membership] = layout.panels;
+      if (width > 850) {
+        assert.ok(Math.abs(profile.y - membership.y) < 1);
+        assert.ok(
+          Math.abs(profile.height - membership.height) < 1,
+          "Desktop panels share one aligned surface",
+        );
+        assert.ok(profile.right <= membership.x + 1);
+      } else {
+        assert.ok(
+          profile.bottom <= membership.y + 1,
+          "Phone panels stack without overlap",
+        );
+        assert.ok(Math.abs(profile.width - membership.width) < 1);
+      }
+      if ([390, 1440].includes(width))
+        await first.screenshot({
+          path: `test-results/account-workspace-${width}-${theme}.png`,
+          fullPage: true,
+        });
+    }
   }
-  await first.screenshot({
-    path: "test-results/account-workspace-desktop.png",
-    fullPage: true,
-  });
-  await first
-    .getByRole("button", { name: "Switch to dark mode", exact: true })
-    .click();
-  await first.screenshot({
-    path: "test-results/account-workspace-dark-mobile.png",
-    fullPage: true,
-  });
-  await first.setViewportSize({ width: 1440, height: 900 });
-  await first.screenshot({
-    path: "test-results/account-workspace-dark-desktop.png",
-    fullPage: true,
-  });
-  await first.setViewportSize({ width: 390, height: 844 });
-  await first.screenshot({
-    path: "test-results/account-workspace-mobile.png",
-    fullPage: true,
-  });
+  await first.setViewportSize({ width: 320, height: 740 });
+  await displayName.fill(
+    "A very long display name that should never push the account layout off the screen",
+  );
+  assert.equal(
+    await first.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    true,
+  );
   await first.getByRole("button", { name: "Sign out", exact: true }).click();
   await first
     .getByRole("button", { name: "Continue with Google", exact: true })
