@@ -114,6 +114,8 @@ try {
         "All tabs have touch-sized targets",
       );
       assert.ok(layout.theme.width >= 44 && layout.theme.height >= 44);
+      assert.equal(await page.locator("#theme svg").count(), 2);
+      assert.equal(await page.locator("#theme").getAttribute("aria-pressed"), String(theme === "dark"));
       assert.notEqual(layout.activeBackground, layout.inactiveBackground);
       assert.equal(layout.underline, "none", "No detached active underline");
       if (width > 760) {
@@ -191,4 +193,3 @@ try {
 } finally {
   await browser.close();
 }
-

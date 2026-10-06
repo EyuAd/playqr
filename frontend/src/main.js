@@ -1237,10 +1237,9 @@ function theme() {
     );
   document
     .querySelector("#theme")
-    .replaceChildren(
-      symbol(
-        document.documentElement.dataset.theme === "dark" ? "sun" : "moon",
-      ),
+    .setAttribute(
+      "aria-pressed",
+      String(document.documentElement.dataset.theme === "dark"),
     );
   document.querySelector('meta[name="theme-color"]').content =
     document.documentElement.dataset.theme === "dark" ? "#17191d" : "#f6f4ee";
@@ -1306,4 +1305,3 @@ void initAuth()
     ready = true;
     void route();
   });
-
