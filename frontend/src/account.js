@@ -2,7 +2,15 @@ import { el, button, heading, empty, guard, toast, copy } from "./ui.js";
 import { auth, session, authError, redirectTo } from "./auth.js";
 import { syncStatus, flush, initializeWorkspace } from "./sync.js";
 import { request } from "./api.js";
-import { state, save, ownerKey, guestLibrary } from "./storage.js";
+import {
+  state,
+  save,
+  storageError,
+  ownerKey,
+  guestLibrary,
+} from "./storage.js";
+import { exportLibraryBackup } from "./backup.js";
+import { mergeBackup } from "../../shared/backup.js";
 import { collectionCover } from "./collection-design.js";
 import { symbol } from "./symbols.js";
 
@@ -120,10 +128,14 @@ export async function accountPage(main, isCurrent, refresh) {
     return;
   }
   if (!session) {
-    const status = el("p", {
-      role: "status",
-      class: "signin-status small-note",
-    });
+    const status = el(
+      "p",
+      {
+        role: "status",
+        class: "signin-status small-note",
+      },
+      authError,
+    );
     const email = el("input", {
       type: "email",
       required: true,
@@ -151,6 +163,7 @@ export async function accountPage(main, isCurrent, refresh) {
     );
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (send.disabled) return;
       send.disabled = true;
       status.textContent = "Sending…";
       try {
@@ -212,6 +225,7 @@ export async function accountPage(main, isCurrent, refresh) {
     "Your account",
     "Your public profile. Your private library. All in one place.",
   );
+  const accountUserId = session.user.id;
   accountHeading.classList.add("account-settings-heading");
   main.append(accountHeading);
   const workspace = el("div", { class: "account-workspace" });
@@ -270,6 +284,11 @@ export async function accountPage(main, isCurrent, refresh) {
           }),
         ),
         button(
+          "Export library backup",
+          guard(() => exportLibraryBackup(accountUserId)),
+          "button secondary account-backup",
+        ),
+        button(
           "Sign out",
           guard(async () => {
             await flush();
@@ -297,43 +316,46 @@ export async function accountPage(main, isCurrent, refresh) {
         el(
           "p",
           { class: "small-note" },
-          "Import this browser’s guest saves and drafts. Existing shared links transfer to your account and keep working.",
+          "Import this browser’s guest saves and drafts. Existing shared links transfer to your account and keep working. You can export a private backup before reloading a cloud copy.",
         ),
         button(
           "Import browser library",
-          guard(async () => {
-            const guest = guestLibrary();
-            const favorites = [
-              ...new Map(
-                [...guest.favorites, ...state.favorites].map((a) => [a.id, a]),
-              ).values(),
-            ];
-            const collections = [
-              ...new Map(
-                [...guest.collections, ...state.collections].map((c) => [
-                  c.id,
-                  c,
-                ]),
-              ).values(),
-            ];
-            if (favorites.length > 100 || collections.length > 100)
-              throw new Error(
-                "Import would exceed the limit of 100 favorites or collections.",
+          guard(async (event) => {
+            const control = event.currentTarget;
+            if (control.disabled) return;
+            control.disabled = true;
+            try {
+              const guest = guestLibrary();
+              const imported = mergeBackup(state, guest);
+              await request("/account/claim", {
+                method: "POST",
+                privateAccess: true,
+                data: { guestKey: ownerKey() },
+              });
+              if (session?.user.id !== accountUserId)
+                throw new Error(
+                  "Your account changed. Library import was cancelled.",
+                );
+              const previous = {
+                favorites: state.favorites,
+                collections: state.collections,
+              };
+              Object.assign(state, imported);
+              if (!save()) {
+                Object.assign(state, previous);
+                throw new Error(
+                  "Shared links transferred, but your drafts could not be imported. " +
+                    storageError,
+                );
+              }
+              await flush();
+              toast(
+                "Browser library imported. Shared links now belong to your account.",
               );
-            await request("/account/claim", {
-              method: "POST",
-              privateAccess: true,
-              data: { guestKey: ownerKey() },
-            });
-            state.favorites = favorites;
-            state.collections = collections;
-            if (!save())
-              throw new Error("Could not save imported drafts on this device.");
-            await flush();
-            toast(
-              "Browser library imported. Shared links now belong to your account.",
-            );
-            refresh();
+              if (isCurrent()) refresh();
+            } finally {
+              control.disabled = false;
+            }
           }),
         ),
       ),
@@ -481,6 +503,7 @@ export async function accountPage(main, isCurrent, refresh) {
     );
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (submit.disabled) return;
       submit.disabled = true;
       try {
         await request("/account/profile", {
@@ -489,7 +512,7 @@ export async function accountPage(main, isCurrent, refresh) {
           data: { handle: handle.value, name: name.value, bio: bio.value },
         });
         toast("Public profile saved");
-        refresh();
+        if (isCurrent()) refresh();
       } catch (e) {
         message.textContent = e.message;
       } finally {

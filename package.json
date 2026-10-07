@@ -8,10 +8,15 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.js",
-    "lint": "eslint frontend/src shared worker tests",
+    "test:browser": "node scripts/test-browser.mjs",
+    "test:accounts": "node tests/accounts.mjs",
+    "test:runtime-auth": "npm run worker:build && node tests/runtime-auth.mjs",
+    "check": "npm run lint && npm test && npm run build && npm run worker:build && npm run test:accounts && node tests/runtime-auth.mjs && npm run test:browser",
+    "pages:prepare": "node scripts/prepare-pages.mjs",
+    "lint": "eslint frontend/src shared worker tests scripts",
     "format": "prettier --write frontend shared worker tests README.md docs",
     "worker:dev": "wrangler dev --config worker/wrangler.local.jsonc",
-    "worker:build": "wrangler deploy --dry-run --config worker/wrangler.jsonc --outdir worker-build",
+    "worker:build": "wrangler deploy --dry-run --config worker/wrangler.jsonc --outdir ../worker-build",
     "worker:deploy": "wrangler deploy --config worker/wrangler.jsonc"
   },
   "dependencies": {

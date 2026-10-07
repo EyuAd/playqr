@@ -313,8 +313,8 @@ footer {
 .icon-button {
   display: inline-grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 8px;
   color: var(--ink);
   border: 1px solid var(--line);
@@ -557,6 +557,7 @@ main:focus {
   color: var(--muted);
 }
 .chip {
+  min-height: 44px;
   border: 0;
   border-bottom: 1px solid var(--line);
   padding: 6px 0;
@@ -608,6 +609,7 @@ main:focus {
   background: transparent;
 }
 .text-button {
+  min-height: 44px;
   border: 0;
   background: transparent;
   color: var(--ink);
@@ -636,7 +638,9 @@ main:focus {
   height: 16px;
 }
 .back-link {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   margin: 30px 0;
 }
 .results-grid {
@@ -1271,6 +1275,41 @@ input[type="checkbox"] {
 .dialog p {
   font-size: 0.9rem;
   color: var(--muted);
+}
+.dialog .error-text {
+  color: var(--error);
+}
+.text-button[aria-pressed="true"] {
+  color: var(--accent);
+}
+.draft-save-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  min-height: 28px;
+}
+.draft-save-feedback p {
+  margin: 0;
+}
+.draft-save-feedback .text-button {
+  min-height: 44px;
+}
+.startup-status {
+  margin: 30px 0 16px;
+}
+summary {
+  min-height: 44px;
+  align-content: center;
+}
+@media (max-width: 760px) {
+  .collection-editor input,
+  .collection-editor textarea,
+  .app-note,
+  .dialog input,
+  .signin-email input {
+    font-size: max(16px, 1em);
+  }
 }
 .collection-choice {
   display: block;
@@ -2091,6 +2130,9 @@ input[type="checkbox"] {
   border-color: transparent;
   background: transparent;
   color: var(--error);
+}
+.account-tools .account-backup {
+  grid-column: 1 / -1;
 }
 .account-import {
   border-top: 1px solid var(--line);

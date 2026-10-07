@@ -12,6 +12,7 @@ import {
   icon,
   metadata,
   appCard,
+  favoriteButton,
   empty,
   skeleton,
   toast,
@@ -21,7 +22,7 @@ import {
   errorPanel,
   prettyNumber,
 } from "./ui.js";
-import { state, save, remember, favorite } from "./storage.js";
+import { state, save, remember, favorite, storageError } from "./storage.js";
 import { search, appDetails, publish, request, API } from "./api.js";
 import {
   parseStoreUrl,
@@ -37,6 +38,7 @@ import { initAuth, session } from "./auth.js";
 import { initializeWorkspace, syncStatus } from "./sync.js";
 import { accountPage, profilePage } from "./account.js";
 import { reorderApps, duplicateCollection } from "../../shared/collections.js";
+import { showShareDialog } from "./sharing.js";
 
 const main = document.querySelector("#main");
 const discoveryState = { query: "", store: "all" };
@@ -64,10 +66,10 @@ function cards(apps, notes = {}) {
       const card = appCard(
         app,
         openApp,
-        (a, e) => {
+        (a) => {
           const selected = favorite(a);
-          e.currentTarget.textContent = selected ? "♥ Saved" : "♡ Save";
           toast(selected ? "Saved to your library" : "Removed from favorites");
+          return selected;
         },
         state.favorites.some((a) => a.id === app.id),
         addToCollection,
@@ -90,15 +92,18 @@ function updateCounts() {
     state.collections.length || "";
 }
 function addToCollection(app) {
-  const dialog = el("dialog", { class: "dialog" }),
+  const dialog = el("dialog", {
+      class: "dialog",
+      "aria-labelledby": "add-collection-title",
+    }),
     close = button("Close", () => dialog.close(), "text-button");
   const content = el(
     "form",
-    { method: "dialog" },
+    {},
     el(
       "div",
       { class: "section-heading" },
-      el("h2", {}, "Add to collection"),
+      el("h2", { id: "add-collection-title" }, "Add to collection"),
       close,
     ),
   );
@@ -106,18 +111,22 @@ function addToCollection(app) {
     content.append(
       button(
         c.title,
-        () => {
+        guard(() => {
           if (!c.apps.some((a) => a.id === app.id)) {
             if (c.apps.length >= 20) {
               toast("Collections can contain up to 20 apps.");
               return;
             }
-            c.apps.push(app);
-            save();
+            const previous = c.apps;
+            c.apps = [...previous, app];
+            if (!save()) {
+              c.apps = previous;
+              throw new Error(storageError);
+            }
           }
           dialog.close();
           toast("Added to " + c.title);
-        },
+        }),
         "collection-choice",
       ),
     ),
@@ -125,35 +134,44 @@ function addToCollection(app) {
   const input = el("input", {
     placeholder: "e.g. My Android setup",
     maxlength: 80,
+    required: true,
     "aria-label": "New collection title",
+  });
+  const message = el("p", { role: "status", class: "error-text" });
+  content.addEventListener("submit", (event) => {
+    event.preventDefault();
+    message.textContent = "";
+    try {
+      if (!input.value.trim()) {
+        input.focus();
+        return;
+      }
+      if (state.collections.length >= 100)
+        throw new Error("Your browser can hold up to 100 collection drafts.");
+      state.collections.push({
+        id: crypto.randomUUID(),
+        title: input.value.trim(),
+        description: "",
+        apps: [app],
+      });
+      if (!save()) {
+        state.collections.pop();
+        throw new Error(storageError);
+      }
+      updateCounts();
+      dialog.close();
+      toast("Collection created");
+    } catch (error) {
+      message.textContent = error.message;
+    }
   });
   content.append(
     el("label", {}, "Create a new collection", input),
-    button(
-      "Create & add",
-      () => {
-        if (!input.value.trim()) {
-          input.focus();
-          return;
-        }
-        state.collections.push({
-          id: crypto.randomUUID(),
-          title: input.value.trim(),
-          description: "",
-          apps: [app],
-        });
-        save();
-        updateCounts();
-        dialog.close();
-        toast("Collection created");
-      },
-      "button primary",
-    ),
+    el("button", { type: "submit", class: "button primary" }, "Create & add"),
+    message,
   );
   dialog.append(content);
-  document.body.append(dialog);
-  dialog.addEventListener("close", () => dialog.remove());
-  dialog.showModal();
+  showShareDialog(dialog);
   input.focus();
 }
 function discover() {
@@ -508,11 +526,17 @@ async function details(id, version) {
           },
           "Open " + storeLabel(app.id) + " ↗",
         ),
-        button("♡ Save app", () => {
-          toast(
-            favorite(app) ? "Saved to your library" : "Removed from favorites",
-          );
-        }),
+        favoriteButton(
+          app,
+          state.favorites.some((a) => a.id === app.id),
+          () => {
+            const selected = favorite(app);
+            toast(
+              selected ? "Saved to your library" : "Removed from favorites",
+            );
+            return selected;
+          },
+        ),
         button("+ Collection", () => addToCollection(app)),
       ),
       el(
@@ -563,6 +587,10 @@ function collections() {
     button(
       "+ New collection",
       () => {
+        if (state.collections.length >= 100) {
+          toast("Your browser can hold up to 100 collection drafts.");
+          return;
+        }
         const c = {
           id: crypto.randomUUID(),
           title: "Untitled collection",
@@ -570,7 +598,11 @@ function collections() {
           apps: [],
         };
         state.collections.push(c);
-        save();
+        if (!save()) {
+          state.collections.pop();
+          toast(storageError);
+          return;
+        }
         updateCounts();
         location.hash = "collection/" + c.id;
       },
@@ -631,6 +663,22 @@ function editCollection(id) {
     );
     return;
   }
+  const draftStatus = el(
+    "p",
+    { class: "draft-save-status small-note", role: "status" },
+    "Draft saved on this device",
+  );
+  const retrySave = button("Retry saving", () => persistDraft(), "text-button");
+  retrySave.hidden = true;
+  function persistDraft() {
+    const saved = save();
+    draftStatus.textContent = saved
+      ? "Draft saved on this device"
+      : "Not saved. " + storageError;
+    draftStatus.classList.toggle("error-text", !saved);
+    retrySave.hidden = saved;
+    return saved;
+  }
   const title = el("input", {
       value: c.title,
       maxlength: 80,
@@ -673,9 +721,14 @@ function editCollection(id) {
   const coverPreview = el("div", {}, collectionCover(c));
   for (const control of [cover, category])
     control.addEventListener("change", () => {
+      const previous = { cover: c.cover, category: c.category };
       c.cover = cover.value;
       c.category = category.value;
-      save();
+      if (!persistDraft()) {
+        Object.assign(c, previous);
+        cover.value = c.cover || "forest";
+        category.value = c.category || "Everyday";
+      }
       coverPreview.replaceChildren(collectionCover(c));
     });
   const redraw = () => {
@@ -705,7 +758,7 @@ function editCollection(id) {
               note.addEventListener("input", () => {
                 c.notes ||= {};
                 c.notes[a.id] = note.value;
-                save();
+                persistDraft();
               });
               return note;
             })(),
@@ -719,7 +772,7 @@ function editCollection(id) {
                 () => {
                   const previous = c.apps;
                   c.apps = reorderApps(c.apps, index, direction);
-                  if (!save()) {
+                  if (!persistDraft()) {
                     c.apps = previous;
                     toast(
                       "Could not save the new order. Browser storage may be full.",
@@ -749,8 +802,12 @@ function editCollection(id) {
           button(
             "Remove",
             () => {
+              const previous = c.apps;
               c.apps = c.apps.filter((x) => x.id !== a.id);
-              save();
+              if (!persistDraft()) {
+                c.apps = previous;
+                return;
+              }
               redraw();
             },
             "text-button",
@@ -771,9 +828,10 @@ function editCollection(id) {
     input.addEventListener("input", () => {
       c.title = title.value;
       c.description = description.value;
-      save();
+      persistDraft();
     }),
   );
+  let publishCollection;
   main.append(
     el("a", { href: "#collections", class: "back-link" }, "← All collections"),
     heading("COLLECTION EDITOR", "Make it your own."),
@@ -835,9 +893,7 @@ function editCollection(id) {
               ),
             ),
           );
-          document.body.append(dialog);
-          dialog.addEventListener("close", () => dialog.remove());
-          dialog.showModal();
+          showShareDialog(dialog);
           dialog.querySelector("button").focus();
         },
         "text-button danger-text",
@@ -849,6 +905,7 @@ function editCollection(id) {
       { class: "collection-editor" },
       title,
       description,
+      el("div", { class: "draft-save-feedback" }, draftStatus, retrySave),
       el(
         "div",
         { class: "curation-options" },
@@ -865,26 +922,39 @@ function editCollection(id) {
         { href: "#discover", class: "button secondary" },
         "+ Find more apps",
       ),
-      button(
+      (publishCollection = button(
         "Publish collection ↗",
         guard(async () => {
+          if (publishCollection.disabled) return;
           if (!c.title.trim() || !c.apps.length)
             throw new Error("Add a title and at least one app first.");
-          const published = await publish({
-            kind: "collection",
-            title: c.title,
-            description: c.description,
-            ids: c.apps.map((a) => a.id),
-            ...curate(
-              c,
-              c.apps.map((a) => a.id),
-            ),
-            listed: session ? listed.checked : false,
-          });
-          location.hash = "share/" + published.code;
+          if (!persistDraft()) throw new Error(storageError);
+          publishCollection.disabled = true;
+          publishCollection.textContent = "Publishing…";
+          publishCollection.setAttribute("aria-busy", "true");
+          const version = routeVersion;
+          try {
+            const published = await publish({
+              kind: "collection",
+              title: c.title,
+              description: c.description,
+              ids: c.apps.map((a) => a.id),
+              ...curate(
+                c,
+                c.apps.map((a) => a.id),
+              ),
+              listed: session ? listed.checked : false,
+            });
+            if (version === routeVersion)
+              location.hash = "share/" + published.code;
+          } finally {
+            publishCollection.disabled = false;
+            publishCollection.textContent = "Publish collection ↗";
+            publishCollection.removeAttribute("aria-busy");
+          }
         }),
         "button primary",
-      ),
+      )),
     ),
     ...(session
       ? [
@@ -1178,13 +1248,29 @@ async function dashboard(version) {
     links.replaceChildren(errorPanel(e.message, () => void route()));
   }
 }
-async function route() {
+async function route(moveFocus = true) {
   const version = ++routeVersion;
   currentRequest?.abort();
   clearTimeout(debounce);
   main.replaceChildren();
-  const [name = "discover", id = ""] = location.hash.slice(1).split("/");
-  main.dataset.page = name || "discover";
+  const [requested = "discover", id = ""] = location.hash.slice(1).split("/");
+  const name = [
+    "discover",
+    "app",
+    "collections",
+    "collection",
+    "share",
+    "dashboard",
+    "analytics",
+    "privacy",
+    "account",
+    "profile",
+  ].includes(requested)
+    ? requested
+    : "discover";
+  main.dataset.page = name;
+  main.setAttribute("aria-busy", "true");
+  if (moveFocus) main.focus({ preventScroll: true });
   const active =
     {
       app: "discover",
@@ -1200,35 +1286,60 @@ async function route() {
   });
   updateCounts();
   window.scrollTo(0, 0);
-  if (name === "app") await details(id, version);
-  else if (name === "collections") collections();
-  else if (name === "collection") editCollection(id);
-  else if (name === "share") await shared(id, version);
-  else if (name === "dashboard") await dashboard(version);
-  else if (name === "analytics")
-    await analytics(main, id, () => version === routeVersion);
-  else if (name === "privacy") privacy(main);
-  else if (name === "account")
-    await accountPage(
-      main,
-      () => version === routeVersion,
-      () => void route(),
-    );
-  else if (name === "profile")
-    await profilePage(main, id, () => version === routeVersion);
-  else discover();
+  try {
+    if (name === "app") await details(id, version);
+    else if (name === "collections") collections();
+    else if (name === "collection") editCollection(id);
+    else if (name === "share") await shared(id, version);
+    else if (name === "dashboard") await dashboard(version);
+    else if (name === "analytics")
+      await analytics(main, id, () => version === routeVersion);
+    else if (name === "privacy") privacy(main);
+    else if (name === "account")
+      await accountPage(
+        main,
+        () => version === routeVersion,
+        () => void route(false),
+      );
+    else if (name === "profile")
+      await profilePage(main, id, () => version === routeVersion);
+    else discover();
+  } catch (error) {
+    if (version === routeVersion)
+      main.replaceChildren(errorPanel(error.message, () => void route()));
+  } finally {
+    if (version === routeVersion) {
+      main.setAttribute("aria-busy", "false");
+      const title = main
+        .querySelector("h1, h2, h3")
+        ?.innerText.replace(/\s+/g, " ")
+        .trim();
+      document.title = title
+        ? `${title} — PlayQR`
+        : "PlayQR — Find an app. Pass it on.";
+    }
+  }
 }
 const prefersDark = matchMedia("(prefers-color-scheme: dark)");
+let themePreference;
+try {
+  themePreference = localStorage.getItem("playqr-theme");
+} catch {
+  /* In-memory theme still works when storage is unavailable. */
+}
 document.querySelectorAll(".header nav a[data-icon]").forEach((link) => {
   link.prepend(symbol(link.dataset.icon, "nav-icon"));
 });
 function theme() {
+  const preference = ["light", "dark", "system"].includes(themePreference)
+    ? themePreference
+    : state.theme;
   document.documentElement.dataset.theme =
-    state.theme === "system"
+    preference === "system"
       ? prefersDark.matches
         ? "dark"
         : "light"
-      : state.theme;
+      : preference;
   document
     .querySelector("#theme")
     .setAttribute(
@@ -1249,7 +1360,13 @@ prefersDark.addEventListener("change", theme);
 document.querySelector("#theme").addEventListener("click", () => {
   state.theme =
     document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  save();
+  themePreference = state.theme;
+  try {
+    localStorage.setItem("playqr-theme", themePreference);
+  } catch {
+    toast("Theme changed for this visit. Browser storage is unavailable.");
+  }
+  if (!save()) toast(storageError);
   theme();
 });
 function connectivity() {
@@ -1261,6 +1378,17 @@ document.querySelector(".skip").addEventListener("click", (event) => {
 });
 window.addEventListener("online", connectivity);
 window.addEventListener("offline", connectivity);
+window.addEventListener("storage", (event) => {
+  if (event.key === "playqr-theme") {
+    themePreference = event.newValue;
+    theme();
+  }
+});
+window.addEventListener("playqr:storage-conflict", () =>
+  toast(
+    "Your library changed in another tab. Reload this tab before making more changes.",
+  ),
+);
 window.addEventListener("keydown", (event) => {
   if (
     event.key !== "/" ||
@@ -1294,14 +1422,25 @@ window.addEventListener("playqr:auth", async () => {
   known.clear();
   theme();
   ready = true;
-  void route();
+  void route(false);
 });
-main.append(skeleton());
+const startupStatus = el(
+  "p",
+  { class: "startup-status small-note", role: "status" },
+  "Getting your library ready…",
+);
+main.setAttribute("aria-busy", "true");
+main.append(startupStatus, skeleton());
 void initAuth()
-  .then(() => initializeWorkspace())
+  .then(() => {
+    startupStatus.textContent = session
+      ? "Restoring your private account library…"
+      : "Opening your browser library…";
+    return initializeWorkspace();
+  })
   .catch((e) => toast(e.message))
   .finally(() => {
     known.clear();
     ready = true;
-    void route();
+    void route(false);
   });

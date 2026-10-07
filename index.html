@@ -4,17 +4,48 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f6f4ee" />
+    <meta name="color-scheme" content="light dark" />
     <meta
       name="description"
       content="Discover Android and iPhone apps. Build curated collections and share the right app with one smart QR code."
     />
+    <meta property="og:title" content="PlayQR — Find an app. Pass it on." />
+    <meta
+      property="og:description"
+      content="Find Android and iPhone apps, curate your favorites, and share the exact app with a QR code."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://eyubuilds.tech/" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="canonical" href="https://eyubuilds.tech/" />
     <title>PlayQR — Find an app. Pass it on.</title>
+    <script>
+      try {
+        const preference =
+          localStorage.getItem("playqr-theme") ||
+          JSON.parse(localStorage.getItem("playqr-library-v2") || "{}").theme;
+        document.documentElement.dataset.theme =
+          preference === "dark" ||
+          (preference !== "light" &&
+            matchMedia("(prefers-color-scheme: dark)").matches)
+            ? "dark"
+            : "light";
+      } catch {
+        document.documentElement.dataset.theme = matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches
+          ? "dark"
+          : "light";
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%232b45d8'/%3E%3Cpath d='M10 30 29 11M10 11h19v19' fill='none' stroke='%23fff' stroke-width='4'/%3E%3C/svg%3E"
     />
-    <script type="module" crossorigin src="./assets/index-HYPC3gwh.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BUn1Hod7.css">
+    <script type="module" crossorigin src="./assets/index-CxPm05U3.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CHKXlnXE.css">
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
@@ -75,7 +106,20 @@
       You’re offline. Saved apps are available; search and sharing need a
       connection.
     </div>
-    <main id="main" tabindex="-1"></main>
+    <main id="main" tabindex="-1">
+      <noscript
+        ><section class="empty-state">
+          <h1>PlayQR needs JavaScript</h1>
+          <p>
+            Enable JavaScript to search apps, build collections and create QR
+            codes.
+          </p>
+          <a class="button" href="https://play.google.com/store/apps"
+            >Browse Google Play</a
+          >
+        </section></noscript
+      >
+    </main>
     <footer>
       <a class="brand small" href="#discover">PlayQR.</a>
       <span class="footer-tagline">Find it. Keep it. Pass it on.</span>

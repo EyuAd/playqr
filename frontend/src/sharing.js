@@ -2,6 +2,9 @@ import { el, button, copy, share, guard } from "./ui.js";
 import { symbol } from "./symbols.js";
 import { shareLinks } from "./share-links.js";
 
+const openDialogs = new Set();
+let previousOverflow, previousGutter;
+
 export function shareChoices(title, url) {
   return el(
     "div",
@@ -37,9 +40,37 @@ export function dialogHeader(title, dialog, id) {
 }
 
 export function showShareDialog(dialog) {
+  const opener = document.activeElement;
   document.body.append(dialog);
-  dialog.addEventListener("close", () => dialog.remove(), { once: true });
-  dialog.showModal();
+  const release = () => {
+    openDialogs.delete(dialog);
+    dialog.remove();
+    if (!openDialogs.size) {
+      document.documentElement.style.overflow = previousOverflow;
+      document.documentElement.style.scrollbarGutter = previousGutter;
+    }
+    if (
+      !document.querySelector("dialog[open]") &&
+      opener instanceof HTMLElement &&
+      opener.isConnected
+    )
+      opener.focus({ preventScroll: true });
+  };
+  dialog.addEventListener("close", release, { once: true });
+  if (!openDialogs.size) {
+    previousOverflow = document.documentElement.style.overflow;
+    previousGutter = document.documentElement.style.scrollbarGutter;
+    document.documentElement.style.scrollbarGutter = "stable";
+    document.documentElement.style.overflow = "hidden";
+  }
+  openDialogs.add(dialog);
+  try {
+    dialog.showModal();
+    dialog.querySelector(".share-close")?.focus({ preventScroll: true });
+  } catch (error) {
+    release();
+    throw error;
+  }
 }
 
 export function openShareVia({ title, url, createCard }) {

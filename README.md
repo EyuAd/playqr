@@ -2,7 +2,7 @@
 
 Discover Android and iPhone apps from any device. Share an exact store listing, a device-aware QR, or a curated collection.
 
-[Live demo](https://eyuad.github.io/playqr/) · [Architecture](docs/architecture.md)
+[Live demo](https://eyubuilds.tech/) · [Architecture](docs/architecture.md)
 
 ![PlayQR desktop search experience](docs/desktop.png)
 
@@ -21,7 +21,8 @@ Search by app name or paste a Google Play / App Store listing. Choose the correc
 - A browser-owned library: favorites, recent apps/searches, shared links, most-visited links, and last-visited times.
 - Real 7-day, 30-day, and all-time aggregate analytics; no fabricated metrics.
 - Owner-only title editing, confirmed link revocation, and analytics CSV export.
-- Optional Google/email accounts, revision-protected library sync and opt-in public collection profiles. These stay disabled until [authentication setup](docs/accounts-setup.md) is complete.
+- Google/email accounts, revision-protected library sync and opt-in public collection profiles. Guest mode remains available without signing in; forks can follow the [authentication setup](docs/accounts-setup.md).
+- Private JSON library backups for guests and accounts; collision-safe guest import keeps different drafts rather than silently replacing them.
 - Responsive light/dark themes, visible keyboard focus, reduced-motion support, and offline messaging.
 
 ## Architecture and stack
@@ -99,11 +100,17 @@ npm test                 # URL/redirect/metadata/QR/API validation tests
 npm run lint
 npm run build
 npm run worker:build     # Worker bundle validation, no deployment
+npm run test:browser     # starts/stops local Vite; mocked browser regressions
+npm run test:accounts    # isolated D1 and mocked identity provider
+npm run test:runtime-auth # Worker build + real local runtime, mocked identity
+npm run check            # lint, units, builds, account/runtime and browser regressions
 node tests/integration.mjs # local Worker and migrated D1 must be running
 node tests/browser.mjs     # local frontend + Worker + Chrome; real upstream requests
 ```
 
-The browser check covers real search/icons, QR sizing/export, smart links, collection publishing, mobile overflow, and dark mode. Integration checks verify owner isolation and privacy opt-outs against real local D1. Upstream Google Play timeouts can fail browser tests; they are not hidden behind synthetic production data.
+`npm run test:browser` starts its own local Vite server on port 5173 and fails clearly if that port is already occupied. It uses only local API fixtures and a mock identity provider: no production database writes, real account sign-ins, or automatic social posts. It covers navigation, both themes, phone/desktop layouts, guest/account separation, sync conflicts, dropdown contrast, sharing/PDF exports, storage resilience, and release polish. Screenshots go to ignored `test-results/`.
+
+The optional `tests/browser.mjs` check uses a separately running local Worker and real store requests. Integration checks verify owner isolation and privacy opt-outs against local D1. Upstream Google Play timeouts can fail those live-provider checks; production results are never replaced with test fixtures. GitHub Actions runs lint, unit tests, production builds, isolated account/runtime checks, and mocked browser regressions on pushes and pull requests without deployment secrets or write permissions.
 
 ## Deployment
 
@@ -111,10 +118,10 @@ See [deployment guide](docs/deployment.md) for database setup, verification, pub
 
 ## Roadmap
 
-- Complete production Google/email provider setup and expand account lifecycle controls.
+- Expand account lifecycle controls, including account deletion and retention settings.
 - Configurable automatic aggregate retention (owner-controlled link revocation is available).
 - Licensed/contracted app-metadata provider if usage outgrows public-page extraction.
-- Automated accessibility audits, wider browser coverage, and service-level monitoring.
-- Signed release previews and automated deployment once repository deployment permissions are configured.
+- Wider browser coverage, automated accessibility auditing, and service-level monitoring.
+- Signed release previews and gated automated deployment once repository deployment permissions are configured; read-only quality checks already run in GitHub Actions.
 
 PlayQR is independent of Google and Apple and is not affiliated with either store or the apps it lists.

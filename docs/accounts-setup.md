@@ -1,6 +1,6 @@
 # Enable Google and email accounts
 
-Account UI and server endpoints are implemented, but sign-in remains disabled until the providers below are configured and tested. Search, sharing, and guest libraries do not require Supabase. PlayQR uses Supabase for authentication; app data stays in Cloudflare D1.
+Google and email sign-in are enabled on the current deployment. This guide documents provider setup for a new deployment or troubleshooting; forks should leave sign-in disabled until their own providers are configured and tested. Search, sharing, and guest libraries do not require Supabase. PlayQR uses Supabase for authentication; app data stays in Cloudflare D1.
 
 ## Continue as guest
 
@@ -52,7 +52,7 @@ See [Resend's Supabase SMTP guide](https://resend.com/docs/send-with-supabase-sm
 
 ## 4. Enable and verify
 
-The production Worker already has the Supabase project URL and publishable key; never replace these with a secret/service-role key. Keep `AUTH_READY` set to `false` until provider setup is complete. Then set it to `true`, deploy the Worker, and complete the real sign-in checks below before announcing availability. `/auth/config` provides the public configuration to the frontend without a rebuild. If testing fails, set `AUTH_READY` back to `false` while fixing the provider settings.
+The current production Worker has the Supabase project URL, publishable key, and `AUTH_READY=true`; never replace the publishable key with a secret/service-role key. For a fresh deployment, keep `AUTH_READY` set to `false` until provider setup is complete. Then set it to `true`, deploy the Worker, and complete the real sign-in checks below before announcing availability. `/auth/config` provides the public configuration to the frontend without a rebuild. If testing fails, set `AUTH_READY` back to `false` while fixing the provider settings.
 
 For a fresh deployment, apply `0002_accounts_curation.sql` first. It is already applied to the current production database. Existing links and browser keys remain valid.
 

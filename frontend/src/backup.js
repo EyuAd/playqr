@@ -1,12 +1,31 @@
 import { el, button, guard, toast } from "./ui.js";
 import { state, save } from "./storage.js";
 import { session } from "./auth.js";
+import { showShareDialog } from "./sharing.js";
 import {
   createBackup,
   parseBackup,
   mergeBackup,
   MAX_BACKUP_BYTES,
 } from "../../shared/backup.js";
+
+export function exportLibraryBackup(expectedUserId = null) {
+  if ((session?.user.id || null) !== expectedUserId)
+    throw new Error("Your account changed. Refresh your library first.");
+  const value = JSON.stringify(createBackup(state), null, 2);
+  if (new Blob([value]).size > MAX_BACKUP_BYTES)
+    throw new Error(
+      "This library is larger than 1 MB. Reduce it before exporting.",
+    );
+  const url = URL.createObjectURL(
+    new Blob([value], { type: "application/json" }),
+  );
+  el("a", {
+    href: url,
+    download: `playqr-library-${new Date().toISOString().slice(0, 10)}.json`,
+  }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
 
 export function backupPanel(refresh) {
   const file = el("input", {
@@ -80,9 +99,7 @@ export function backupPanel(refresh) {
           ),
         ),
       );
-      document.body.append(dialog);
-      dialog.addEventListener("close", () => dialog.remove());
-      dialog.showModal();
+      showShareDialog(dialog);
       dialog.querySelector("button").focus();
     }),
   );
@@ -104,25 +121,7 @@ export function backupPanel(refresh) {
       { class: "detail-actions" },
       button(
         "Export backup",
-        guard(() => {
-          if (session)
-            throw new Error(
-              "Your account changed. Refresh your library first.",
-            );
-          const value = JSON.stringify(createBackup(state), null, 2);
-          if (new Blob([value]).size > MAX_BACKUP_BYTES)
-            throw new Error(
-              "This library is larger than 1 MB. Reduce it before exporting.",
-            );
-          const url = URL.createObjectURL(
-            new Blob([value], { type: "application/json" }),
-          );
-          el("a", {
-            href: url,
-            download: `playqr-library-${new Date().toISOString().slice(0, 10)}.json`,
-          }).click();
-          setTimeout(() => URL.revokeObjectURL(url), 10000);
-        }),
+        guard(() => exportLibraryBackup()),
       ),
       button("Import backup", () => file.click()),
     ),

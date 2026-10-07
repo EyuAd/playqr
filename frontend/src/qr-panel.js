@@ -26,14 +26,54 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
     class: "destination",
   });
   const error = el("p", { class: "error-text", role: "status" });
-  let qrModule;
+  const retry = button("Retry QR code", () => void draw(), "text-button");
+  retry.hidden = true;
+  let qrModule,
+    drawSequence = 0,
+    rendered = false;
+  const exportButtons = [];
+  function updateExports() {
+    exportButtons.forEach((control) => {
+      control.disabled = !rendered || control.hasAttribute("aria-busy");
+    });
+  }
   const draw = async () => {
+    const ticket = ++drawSequence,
+      value = destination,
+      options = { ...settings };
+    rendered = false;
+    canvas.hidden = true;
+    retry.hidden = true;
+    qrStage.setAttribute("aria-busy", "true");
+    updateExports();
     try {
       qrModule ||= await import("./qr.js");
-      await qrModule.renderQR(canvas, destination, settings);
+      const preview = document.createElement("canvas");
+      await qrModule.renderQR(preview, value, options);
+      if (ticket !== drawSequence) return false;
+      canvas.width = preview.width;
+      canvas.height = preview.height;
+      canvas.getContext("2d").drawImage(preview, 0, 0);
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
+      canvas.hidden = false;
+      rendered = true;
       error.textContent = "";
+      return true;
     } catch (e) {
-      error.textContent = e.message;
+      if (ticket === drawSequence) {
+        canvas.width = canvas.height = 0;
+        error.textContent =
+          "The QR code could not be prepared. Retry, or copy the link instead. " +
+          e.message;
+        retry.hidden = false;
+      }
+      return false;
+    } finally {
+      if (ticket === drawSequence) {
+        qrStage.removeAttribute("aria-busy");
+        updateExports();
+      }
     }
   };
   const controls = el(
@@ -44,44 +84,67 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
       guard(() => copy(destination)),
       "button primary",
     ),
-    button("Share via", () =>
-      openShareVia({ title, url: destination, createCard }),
-    ),
+    button("Share via", () => {
+      const url = destination,
+        options = { ...settings };
+      openShareVia({
+        title,
+        url,
+        createCard: () => createCard(url, options),
+      });
+    }),
   );
-  const downloads = el(
-    "div",
-    { class: "share-actions" },
-    button(
-      "↓ PNG",
+  const downloads = el("div", { class: "share-actions" });
+  for (const format of ["png", "svg"]) {
+    const download = button(
+      "↓ " + format.toUpperCase(),
       guard(async () => {
-        await draw();
-        await qrModule.exportQR(destination, settings, "png", title);
+        if (download.disabled || !rendered) return;
+        const value = destination,
+          options = { ...settings };
+        download.disabled = true;
+        download.setAttribute("aria-busy", "true");
+        try {
+          await qrModule.exportQR(value, options, format, title);
+        } finally {
+          download.removeAttribute("aria-busy");
+          download.disabled = !rendered;
+        }
       }),
-    ),
-    button(
-      "↓ SVG",
-      guard(async () => {
-        await draw();
-        await qrModule.exportQR(destination, settings, "svg", title);
-      }),
-    ),
-  );
-  panel.append(qrStage, caption, controls, downloads, link, error);
-  async function createCard() {
-    const { openShareCard } = await import("./share-card.js");
-    await openShareCard({
-      title,
-      url: destination,
-      settings: { ...settings },
-      ...card,
-    });
+    );
+    download.disabled = true;
+    exportButtons.push(download);
+    downloads.append(download);
   }
+  panel.append(qrStage, caption, controls, downloads, link, error, retry);
+  async function createCard(value = destination, customization = settings) {
+    const options = {
+      ...card,
+      title,
+      url: value,
+      settings: { ...customization },
+    };
+    const { openShareCard } = await import("./share-card.js");
+    if (!panel.isConnected) return;
+    await openShareCard(options);
+  }
+  const create = button(
+    "Create share card ↗",
+    guard(async () => {
+      if (create.hasAttribute("aria-busy")) return;
+      create.setAttribute("aria-busy", "true");
+      create.setAttribute("aria-disabled", "true");
+      try {
+        await createCard();
+      } finally {
+        create.removeAttribute("aria-busy");
+        create.removeAttribute("aria-disabled");
+      }
+    }),
+    "button share-card-button",
+  );
   panel.append(
-    button(
-      "Create share card ↗",
-      guard(createCard),
-      "button share-card-button",
-    ),
+    create,
     el(
       "p",
       { class: "small-note" },
@@ -92,7 +155,10 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
     const smart = button(
       "Create smart link",
       guard(async () => {
+        if (smart.disabled) return;
         smart.disabled = true;
+        smart.setAttribute("aria-busy", "true");
+        smart.textContent = "Creating smart link…";
         try {
           const result = await makeSmart();
           destination = result.url;
@@ -103,7 +169,10 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
           await draw();
         } catch (e) {
           smart.disabled = false;
+          smart.textContent = "Create smart link";
           throw e;
+        } finally {
+          smart.removeAttribute("aria-busy");
         }
       }),
       "button smart-button",

@@ -1,5 +1,6 @@
 import { chromium } from "@playwright/test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 const uid = "11111111-1111-4111-8111-111111111111";
 const jwt =
@@ -29,6 +30,7 @@ const cloud = {
   },
 };
 const errors = [];
+let claims = 0;
 async function pageForAccount() {
   const context = await browser.newContext({
       viewport: { width: 390, height: 844 },
@@ -111,6 +113,11 @@ async function pageForAccount() {
           bio: "Good apps, kept together.",
         },
       });
+    if (path === "/account/claim") {
+      assert.equal(req.headers().authorization, "Bearer " + jwt);
+      claims++;
+      return respond({ claimed: 0 });
+    }
     if (path === "/library") return respond({ links: [] });
     return route.continue();
   });
@@ -136,8 +143,38 @@ try {
       r.url().endsWith("/account/library") && r.request().method() === "POST",
   );
   assert.equal(cloud.data.collections[0].title, "Synced draft");
+  await first.evaluate((draftId) => {
+    const guest = JSON.parse(localStorage.getItem("playqr-library-v2"));
+    guest.collections = [
+      {
+        id: draftId,
+        title: "Guest alternate draft",
+        description: "",
+        apps: [],
+      },
+    ];
+    localStorage.setItem("playqr-library-v2", JSON.stringify(guest));
+  }, cloud.data.collections[0].id);
+  await first.getByRole("link", { name: "Account", exact: true }).click();
+  await first
+    .getByRole("button", { name: "Import browser library", exact: true })
+    .click();
+  await first
+    .getByRole("status")
+    .filter({ hasText: "Browser library imported" })
+    .waitFor();
+  assert.equal(claims, 1);
+  assert.equal(
+    cloud.data.collections.length,
+    2,
+    "Guest and account drafts with the same ID are both preserved",
+  );
+  assert.notEqual(cloud.data.collections[0].id, cloud.data.collections[1].id);
+  assert.equal(cloud.data.collections[1].title, "Guest alternate draft");
   const second = await pageForAccount();
-  await second.goto("http://127.0.0.1:5173/#collections", { waitUntil: "commit" });
+  await second.goto("http://127.0.0.1:5173/#collections", {
+    waitUntil: "commit",
+  });
   await second
     .getByRole("heading", { name: "Synced draft", exact: true })
     .waitFor();
@@ -169,6 +206,34 @@ try {
   await first
     .getByRole("button", { name: "Save public profile", exact: true })
     .waitFor();
+  await first.evaluate(() => {
+    const guest = JSON.parse(localStorage.getItem("playqr-library-v2"));
+    guest.favorites.push({
+      id: "com.guest.new",
+      title: "Unimported new guest save",
+    });
+    localStorage.setItem("playqr-library-v2", JSON.stringify(guest));
+  });
+  const backupDownload = first.waitForEvent("download");
+  await first
+    .getByRole("button", { name: "Export library backup", exact: true })
+    .click();
+  const backup = JSON.parse(
+    await readFile(await (await backupDownload).path(), "utf8"),
+  );
+  assert.equal(backup.format, "playqr-library");
+  assert.equal(backup.library.favorites[0].title, "Account-only favorite");
+  assert.equal(backup.library.collections[0].title, "Synced draft");
+  assert.equal(
+    JSON.stringify(backup).includes(jwt),
+    false,
+    "Backups never contain account credentials",
+  );
+  assert.equal(
+    JSON.stringify(backup).includes("Unimported new guest save"),
+    false,
+    "Account exports never include the separate guest library",
+  );
   const displayName = first.getByRole("textbox", {
     name: "Display name",
     exact: true,

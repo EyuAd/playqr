@@ -11,7 +11,10 @@ For a new account/fork, run `npx wrangler d1 create playqr-sharing`, then update
 ```sh
 npm test
 npm run lint
+npm run test:accounts
 npm run worker:build
+node tests/runtime-auth.mjs
+npm run test:browser
 npx wrangler d1 migrations apply playqr-sharing --remote --config worker/wrangler.jsonc
 npm run worker:deploy
 ```
@@ -33,6 +36,8 @@ node scripts/prepare-pages.mjs
 
 Review and commit source, documentation, lockfile, root `index.html`, and `assets/`. Push to the existing Pages source branch (`main` on this repository). The preparation script copies only the generated release entry and assets; it does not delete older assets, allowing cached entrypoints to finish loading during rollout. `dist/` is the standalone build artifact; screenshots are in `docs/`.
 
+The read-only Quality checks workflow validates lint, unit/API tests, both builds, isolated account/runtime behavior, and mocked browser regressions. It has no deployment credentials or production write permissions and does not publish the site. Do not confuse a successful Pages upload with passing application checks. Keep the existing branch-root Pages configuration unless deliberately migrating the deployment method.
+
 Verify the Pages build status and fetch the public site. Hard-refresh once if a browser retains the earlier HTML. Test app search, an original icon, PNG/SVG export, a smart link, and a collection. Check at 390px width and in dark mode.
 
 ## Rollback and operations
@@ -40,4 +45,3 @@ Verify the Pages build status and fetch the public site. Hard-refresh once if a 
 Revert the release commit (do not force-reset unrelated work). Cloudflare keeps Worker versions; use the dashboard rollback controls if a backend release regresses. Keep additive D1 data intact. A frontend rollback alone must not delete existing published links.
 
 Check Cloudflare request/error rates and D1 usage as traffic grows. Configure account budget/usage notifications yourself; this repository does not provision billing changes. The rate limiter is a per-location safeguard, not a global spending cap.
-

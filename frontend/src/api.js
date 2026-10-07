@@ -13,18 +13,59 @@ export async function request(
   if (privateAccess)
     headers.Authorization = `Bearer ${bearerToken || (await accessToken()) || ownerKey()}`;
   if (data) headers["Content-Type"] = "application/json";
-  const response = await fetch(API + path, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    signal: signal
-      ? AbortSignal.any([signal, AbortSignal.timeout(35000)])
-      : AbortSignal.timeout(35000),
-  });
-  const result = await response.json();
-  if (!response.ok)
-    throw new Error(result.error || "The request could not be completed.");
-  return result;
+  const controller = new AbortController();
+  const cancel = () => controller.abort(signal.reason);
+  if (signal?.aborted) cancel();
+  else signal?.addEventListener("abort", cancel, { once: true });
+  const timeout = setTimeout(
+    () =>
+      controller.abort(
+        new DOMException("That took too long. Please retry.", "TimeoutError"),
+      ),
+    35000,
+  );
+  try {
+    const response = await fetch(API + path, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      signal: controller.signal,
+    });
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      const error = new Error(
+        "The app service returned an unreadable response. Please retry in a moment.",
+      );
+      error.status = response.status;
+      throw error;
+    }
+    if (!response.ok) {
+      const fallback =
+        response.status === 429
+          ? "Too many requests. Please wait a moment and try again."
+          : response.status === 401
+            ? "Your session expired. Please sign in again."
+            : "The app service is temporarily unavailable. Please retry.";
+      const error = new Error(
+        typeof result?.error === "string" ? result.error : fallback,
+      );
+      error.status = response.status;
+      throw error;
+    }
+    return result;
+  } catch (error) {
+    if (controller.signal.aborted) throw controller.signal.reason;
+    if (error.name === "TypeError")
+      throw new Error(
+        "Could not reach the app service. Check your connection and try again.",
+      );
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener("abort", cancel);
+  }
 }
 export async function search(query, signal, store = "android") {
   const key = store + ":" + query.toLowerCase();
@@ -87,4 +128,3 @@ export async function appDetails(id, signal) {
 }
 export const publish = (data) =>
   request("/links", { method: "POST", data, privateAccess: true });
-

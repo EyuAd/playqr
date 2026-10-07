@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 const mf = new Miniflare(
   convertV4MiniflareOptions({
     modules: true,
-    scriptPath: "worker/worker-build/worker.js",
+    scriptPath: "worker-build/worker.js",
     compatibilityDate: "2026-09-15",
     d1Databases: { DB: "runtime-auth-test" },
     bindings: {
