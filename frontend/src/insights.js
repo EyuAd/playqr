@@ -6,6 +6,7 @@ import {
   errorPanel,
   prettyNumber,
   button,
+  actionLink,
 } from "./ui.js";
 import { analyticsCSV } from "../../shared/csv.js";
 import { manageLink } from "./link-management.js";
@@ -66,11 +67,7 @@ export async function analytics(main, code, isCurrent) {
           "div",
           { class: "section-heading" },
           el("h2", {}, data.link.title),
-          el(
-            "a",
-            { href: "#share/" + code, class: "text-link" },
-            "Open share page ↗",
-          ),
+          actionLink("Open share page", "#share/" + code),
         ),
         el(
           "div",

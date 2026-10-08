@@ -19,6 +19,7 @@ const suites = [
   "release-polish-browser.mjs",
   "storage-browser.mjs",
   "ui-polish-browser.mjs",
+  "action-buttons-browser.mjs",
 ];
 const children = new Set();
 

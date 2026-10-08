@@ -1,4 +1,5 @@
 import { imageUrl, storeLabel } from "../../shared/domain.js";
+import { symbol } from "./symbols.js";
 export function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {
@@ -18,6 +19,18 @@ export function el(tag, attrs = {}, ...children) {
 }
 export const button = (label, action, cls = "button secondary") =>
   el("button", { class: cls, type: "button", onclick: action }, label);
+export function actionLink(
+  label,
+  href,
+  { class: className = "", ...attrs } = {},
+) {
+  return el(
+    "a",
+    { ...attrs, href, class: `button action-link ${className}`.trim() },
+    el("span", { class: "action-label" }, label),
+    symbol("arrow-right"),
+  );
+}
 export function icon(app, large = false) {
   const wrapper = el("span", { class: "app-icon" + (large ? " large" : "") });
   const src = imageUrl(app.icon);

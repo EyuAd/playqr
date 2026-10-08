@@ -1,4 +1,13 @@
-import { el, button, heading, empty, guard, toast, copy } from "./ui.js";
+import {
+  el,
+  button,
+  actionLink,
+  heading,
+  empty,
+  guard,
+  toast,
+  copy,
+} from "./ui.js";
 import { auth, session, authError, redirectTo } from "./auth.js";
 import { syncStatus, flush, initializeWorkspace } from "./sync.js";
 import { request } from "./api.js";
@@ -437,11 +446,7 @@ export async function accountPage(main, isCurrent, refresh) {
     const footer = el("div", { class: "profile-form-footer" }, submit);
     if (profile)
       footer.append(
-        el(
-          "a",
-          { href: "#profile/" + profile.handle, class: "text-link" },
-          "View public profile ↗",
-        ),
+        actionLink("View public profile", "#profile/" + profile.handle),
       );
     const form = el(
       "form",

@@ -642,6 +642,36 @@ main:focus {
   width: 16px;
   height: 16px;
 }
+.action-link {
+  justify-content: space-between;
+  gap: 20px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 46px;
+  padding: 12px 16px;
+  border-color: color-mix(in srgb, var(--ink) 12%, var(--line));
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-align: left;
+}
+.action-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.action-link .symbol {
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+.action-link:hover .symbol {
+  color: var(--accent);
+  transform: translateX(3px);
+}
+.action-link:active {
+  background: var(--wash);
+}
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -780,6 +810,8 @@ main:focus {
   margin-top: 18px;
 }
 .how-step {
+  display: flex;
+  flex-direction: column;
   padding: 30px 28px 30px 0;
 }
 .how-step + .how-step {
@@ -935,9 +967,11 @@ main:focus {
   font-size: 0.85rem;
   color: var(--muted);
   max-width: 320px;
+  margin-bottom: 24px;
 }
-.how .text-link {
-  font-size: 0.73rem;
+.how .action-link {
+  width: 100%;
+  margin-top: auto;
 }
 footer {
   display: flex;
@@ -2283,12 +2317,15 @@ summary {
   justify-content: flex-end;
   align-items: center;
   flex-wrap: wrap;
-  gap: 18px;
+  gap: 8px;
 }
 .link-actions > * {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
 }
 .analytics-toolbar {
   display: flex;
@@ -2663,7 +2700,7 @@ caption {
   }
   .how p {
     max-width: none;
-    margin-bottom: 12px;
+    margin-bottom: 20px;
   }
   .how h3 {
     font-size: 1.3rem;
@@ -2770,7 +2807,7 @@ caption {
   .link-actions {
     grid-column: 1 / -1;
     justify-content: flex-start;
-    gap: 24px;
+    gap: 8px;
   }
   .breakdowns {
     grid-template-columns: 1fr;
@@ -2856,11 +2893,10 @@ caption {
     flex-direction: column;
     gap: 8px;
   }
-  .profile-form-footer .text-link {
-    min-height: 44px;
-    justify-content: center;
-  }
   .profile-form-footer .button {
+    width: 100%;
+  }
+  .library-account .action-link {
     width: 100%;
   }
   .account-panel {

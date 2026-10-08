@@ -48,7 +48,7 @@ try {
     ),
     true,
   );
-  await page.getByRole("link", { name: "Insights ↗" }).click();
+  await page.getByRole("link", { name: "Insights", exact: true }).click();
   await page
     .getByRole("combobox", { name: "Analytics time range" })
     .selectOption("all");
@@ -79,4 +79,3 @@ try {
   // Only clean up the isolated verification record created by this test.
   await fetch(api + "/links/" + link.code, { method: "DELETE", headers });
 }
-

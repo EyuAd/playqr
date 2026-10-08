@@ -9,6 +9,7 @@ import { manageLink } from "./link-management.js";
 import {
   el,
   button,
+  actionLink,
   icon,
   metadata,
   appCard,
@@ -402,7 +403,7 @@ function discover() {
         "div",
         { class: "section-heading" },
         el("h2", {}, "Pick up where you left off"),
-        el("a", { href: "#dashboard", class: "text-link" }, "Your library ↗"),
+        actionLink("Your library", "#dashboard"),
       ),
       cards(state.recent.slice(0, 4)),
     );
@@ -433,25 +434,33 @@ function discover() {
           stepArt(index),
           el("h3", {}, t),
           el("p", {}, d),
-          el(
-            "a",
+          actionLink(
+            ["Find an app", "Build a collection", "Open your library"][index],
+            ["#discover", "#collections", "#dashboard"][index],
             {
-              class: "text-link",
-              href: ["#discover", "#collections", "#dashboard"][index],
               ...(index === 0
                 ? {
-                    onclick: () => {
+                    onclick: (event) => {
+                      if (
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.shiftKey ||
+                        event.altKey
+                      )
+                        return;
+                      event.preventDefault();
                       input.focus();
                       input.scrollIntoView({
                         block: "center",
-                        behavior: "smooth",
+                        behavior: matchMedia("(prefers-reduced-motion: reduce)")
+                          .matches
+                          ? "auto"
+                          : "smooth",
                       });
                     },
                   }
                 : {}),
             },
-            ["Find an app", "Build a collection", "Open your library"][index],
-            symbol("arrow"),
           ),
         ),
       ),
@@ -1071,10 +1080,9 @@ async function dashboard(version) {
         { class: "small-note" },
         session ? syncStatus : "Guest library · Saved on this device",
       ),
-      el(
-        "a",
-        { href: "#account", class: "text-link" },
-        session ? "Account & sync ↗" : "Use PlayQR across devices ↗",
+      actionLink(
+        session ? "Account & sync" : "Use PlayQR across devices",
+        "#account",
       ),
     ),
   );
@@ -1220,17 +1228,13 @@ async function dashboard(version) {
                 button(
                   "Copy",
                   guard(() => copy(API + "/a/" + l.code)),
-                  "text-button",
+                  "button secondary",
                 ),
-                el(
-                  "a",
-                  { href: "#analytics/" + l.code, class: "text-link" },
-                  "Insights ↗",
-                ),
+                actionLink("Insights", "#analytics/" + l.code),
                 button(
                   "Manage",
                   () => manageLink(l, () => void route()),
-                  "text-button",
+                  "button secondary",
                 ),
               ),
             ),
