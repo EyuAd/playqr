@@ -115,7 +115,10 @@ try {
       );
       assert.ok(layout.theme.width >= 44 && layout.theme.height >= 44);
       assert.equal(await page.locator("#theme svg").count(), 2);
-      assert.equal(await page.locator("#theme").getAttribute("aria-pressed"), String(theme === "dark"));
+      assert.equal(
+        await page.locator("#theme").getAttribute("aria-pressed"),
+        String(theme === "dark"),
+      );
       assert.notEqual(layout.activeBackground, layout.inactiveBackground);
       assert.equal(layout.underline, "none", "No detached active underline");
       if (width > 760) {
@@ -139,7 +142,7 @@ try {
             1,
         );
       }
-      if ([390, 700, 1440].includes(width))
+      if ([320, 390, 700, 1024, 1440].includes(width))
         await page.locator(".header").screenshot({
           path: `test-results/navigation-${width}-${theme}.png`,
         });
