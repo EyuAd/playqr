@@ -165,7 +165,7 @@ try {
   );
   await live.route("**/library", (r) => r.fulfill({ json: { links: [] } }));
   await live.goto(site, { waitUntil: "domcontentloaded" });
-  await live.getByLabel("App store", { exact: true }).selectOption("ios");
+  await live.getByRole("radio", { name: "App Store", exact: true }).check();
   await live.getByRole("searchbox").fill("Spotify");
   await live.getByRole("button", { name: "Find app", exact: true }).click();
   const card = live.locator(".search-results .app-card").first();

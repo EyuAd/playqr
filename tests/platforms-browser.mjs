@@ -20,8 +20,8 @@ try {
   );
   await page.goto(site, { waitUntil: "domcontentloaded" });
   await page
-    .getByRole("combobox", { name: "App store", exact: true })
-    .selectOption("ios");
+    .getByRole("radio", { name: "App Store", exact: true })
+    .check();
   await page
     .getByRole("searchbox", { name: "App name or store URL" })
     .fill("Spotify");

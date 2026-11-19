@@ -13,7 +13,7 @@ try {
   await page.goto(process.env.PLAYQR_TEST_URL || "http://127.0.0.1:5173/", {
     waitUntil: "domcontentloaded",
   });
-  await page.getByLabel("App store", { exact: true }).selectOption("android");
+  await page.getByRole("radio", { name: "Google Play" }).check();
   await page.getByRole("searchbox").fill("TakeCare by Marriott");
   await page.getByRole("button", { name: "Find app" }).click();
   const first = page.locator(".search-results .app-card").first();
@@ -66,8 +66,8 @@ try {
     "TakeCare by Marriott",
   );
   assert.equal(
-    await page.getByLabel("App store", { exact: true }).inputValue(),
-    "android",
+    await page.getByRole("radio", { name: "Google Play" }).isChecked(),
+    true,
   );
   await first.waitFor();
   await page.getByRole("searchbox").fill("https://example.com/not-a-store");

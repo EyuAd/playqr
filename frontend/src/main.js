@@ -224,14 +224,28 @@ function discover() {
     "US store listings · No account needed",
   );
   const store = el(
-    "select",
-    { "aria-label": "App store", class: "store-filter" },
-    el("option", { value: "all" }, "Both stores"),
-    el("option", { value: "android" }, "Google Play · Android"),
-    el("option", { value: "ios" }, "App Store · iPhone"),
+    "div",
+    { role: "radiogroup", "aria-label": "Search in", class: "store-picker" },
+    [
+      ["all", "Both stores"],
+      ["android", "Google Play"],
+      ["ios", "App Store"],
+    ].map(([value, label]) =>
+      el(
+        "label",
+        { class: "store-choice" },
+        el("input", {
+          type: "radio",
+          name: "search-store",
+          value,
+          checked: value === discoveryState.store,
+        }),
+        el("span", {}, label),
+      ),
+    ),
   );
-  store.addEventListener("change", () => {
-    discoveryState.store = store.value;
+  store.addEventListener("change", (event) => {
+    discoveryState.store = event.target.value;
     if (input.value.trim().length >= 2) void run();
   });
   const results = el("section", {
@@ -276,7 +290,6 @@ function discover() {
       route = routeVersion,
       q = input.value.trim();
     discoveryState.query = input.value;
-    discoveryState.store = store.value;
     hero.classList.toggle("search-active", q.length >= 2);
     if (q.length < 2) {
       results.replaceChildren();
@@ -301,7 +314,7 @@ function discover() {
     try {
       const data = direct
         ? { apps: [(await appDetails(direct.id, controller.signal)).app] }
-        : await search(q, controller.signal, store.value);
+        : await search(q, controller.signal, discoveryState.store);
       if (ticket !== sequence || route !== routeVersion) return;
       data.apps.forEach((a) => known.set(a.id, a));
       results.replaceChildren(
@@ -387,7 +400,7 @@ function discover() {
         el(
           "div",
           { class: "store-toolbar" },
-          el("label", {}, "Look in", store),
+          store,
           el("span", { class: "small-note" }, "Press / to search"),
         ),
         form,
@@ -468,7 +481,6 @@ function discover() {
   );
   if (discoveryState.query.trim().length >= 2) {
     input.value = discoveryState.query;
-    store.value = discoveryState.store;
     void run();
   }
 }

@@ -492,16 +492,59 @@ main:focus {
   gap: 12px;
   margin-bottom: 12px;
 }
-.store-toolbar label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.75rem;
+.store-picker {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(100%, 21rem);
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--wash);
 }
-.store-filter {
-  padding: 6px 24px 6px 8px;
-  font-size: 0.76rem;
-  background: transparent;
+.store-choice {
+  position: relative;
+  display: grid;
+  cursor: pointer;
+}
+.store-choice input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.store-choice span {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: var(--wash);
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.store-choice:hover span {
+  color: var(--ink);
+}
+.store-choice input:checked + span {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 3px #0002;
+}
+.store-choice input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+@media (forced-colors: active) {
+  .store-choice input:checked + span {
+    border-color: Highlight;
+    text-decoration: underline;
+  }
 }
 .store-toolbar .small-note {
   font: 0.6rem var(--mono);

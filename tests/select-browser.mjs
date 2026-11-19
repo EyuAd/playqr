@@ -30,26 +30,28 @@ try {
     route.fulfill({ json: { links: [] } }),
   );
   await page.goto(site, { waitUntil: "domcontentloaded" });
-  const picker = page.getByLabel("App store", { exact: true });
+  const picker = page.getByRole("radiogroup", { name: "Search in" });
   await picker.waitFor();
   for (const theme of ["light", "dark"]) {
     if (theme === "dark")
       await page
         .getByRole("button", { name: "Switch to dark mode", exact: true })
         .click();
-    for (const value of ["all", "android", "ios"]) {
-      await picker.selectOption(value);
-      const styles = await picker.evaluate((select) => ({
-        scheme: getComputedStyle(select).colorScheme,
-        options: [...select.options].map((option) => ({
+    for (const name of ["Both stores", "Google Play", "App Store"]) {
+      await picker.getByRole("radio", { name, exact: true }).check();
+      const styles = await picker.evaluate((group) => ({
+        scheme: getComputedStyle(group).colorScheme,
+        options: [...group.querySelectorAll("label span")].map((option) => ({
           text: option.textContent,
           color: getComputedStyle(option).color,
           background: getComputedStyle(option).backgroundColor,
-          selected: option.selected,
+          selected: option.previousElementSibling.checked,
         })),
       }));
       assert.equal(styles.scheme, theme);
-      assert.equal(await picker.inputValue(), value);
+      assert.ok(
+        await picker.getByRole("radio", { name, exact: true }).isChecked(),
+      );
       assert.equal(
         styles.options.filter((option) => option.selected).length,
         1,
@@ -66,13 +68,11 @@ try {
           ),
         );
     }
-    await picker.focus();
-    await page.keyboard.press("Home");
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("Enter");
+    await picker.getByRole("radio", { name: "Both stores" }).check();
+    await page.keyboard.press("ArrowRight");
     assert.equal(
-      await picker.inputValue(),
-      "android",
+      await picker.getByRole("radio", { name: "Google Play" }).isChecked(),
+      true,
       "Native keyboard selection remains available",
     );
   }
