@@ -22,13 +22,13 @@ export const button = (label, action, cls = "button secondary") =>
 export function actionLink(
   label,
   href,
-  { class: className = "", ...attrs } = {},
+  { class: className = "", iconName = "link", ...attrs } = {},
 ) {
   return el(
     "a",
     { ...attrs, href, class: `button action-link ${className}`.trim() },
+    symbol(iconName),
     el("span", { class: "action-label" }, label),
-    symbol("arrow-right"),
   );
 }
 export function icon(app, large = false) {
@@ -147,13 +147,17 @@ export function appCard(app, open, favoriteAction, isFavorite, addAction) {
   card.append(controls);
   return card;
 }
-export function empty(title, description, action) {
+export function empty(title, description, action, iconName = "stack") {
   return el(
     "div",
     { class: "empty-state" },
-    el("span", { class: "empty-symbol", "aria-hidden": "true" }, "↗"),
-    el("h3", {}, title),
-    el("p", {}, description),
+    el("span", { class: "empty-symbol" }, symbol(iconName)),
+    el(
+      "div",
+      { class: "empty-copy" },
+      el("h3", {}, title),
+      el("p", {}, description),
+    ),
     action,
   );
 }
@@ -294,5 +298,10 @@ export function heading(kicker, title, description) {
   );
 }
 export function errorPanel(message, retry) {
-  return empty("Something didn’t connect", message, button("Try again", retry));
+  return empty(
+    "Couldn’t load this section",
+    message,
+    button("Try again", retry),
+    "connection",
+  );
 }

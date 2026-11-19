@@ -3,7 +3,6 @@ import { imageUrl, validateQR } from "../../shared/domain.js";
 import { el, button, guard, copy, toast } from "./ui.js";
 import { shareChoices, dialogHeader, showShareDialog } from "./sharing.js";
 import { cardFilename } from "./share-links.js";
-import { symbol } from "./symbols.js";
 
 function loadIcon(url) {
   return new Promise((resolve) => {
@@ -184,8 +183,6 @@ export async function openShareCard(options) {
     "button primary",
   );
   pdf.disabled = sharePDF.disabled = true;
-  download.prepend(symbol("download"));
-  pdf.prepend(symbol("download"));
   dialog.append(
     dialogHeader("Pass it on.", dialog, "share-card-title"),
     el(

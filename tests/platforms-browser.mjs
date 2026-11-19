@@ -44,7 +44,7 @@ try {
   );
   await page.locator(".app-open").first().click();
   await page
-    .getByRole("link", { name: "Open App Store ↗", exact: true })
+    .getByRole("link", { name: "Open App Store", exact: true })
     .waitFor();
   await page
     .getByText("Connect an Android / iPhone version", { exact: true })

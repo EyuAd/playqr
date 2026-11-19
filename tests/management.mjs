@@ -53,7 +53,7 @@ try {
     .getByRole("combobox", { name: "Analytics time range" })
     .selectOption("all");
   const downloading = page.waitForEvent("download");
-  await page.getByRole("button", { name: "↓ Export CSV" }).click();
+  await page.getByRole("button", { name: "Export CSV" }).click();
   const download = await downloading;
   assert.match(download.suggestedFilename(), /all-time\.csv$/);
   assert.match(

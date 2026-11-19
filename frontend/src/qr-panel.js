@@ -97,7 +97,7 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
   const downloads = el("div", { class: "share-actions" });
   for (const format of ["png", "svg"]) {
     const download = button(
-      "↓ " + format.toUpperCase(),
+      format.toUpperCase(),
       guard(async () => {
         if (download.disabled || !rendered) return;
         const value = destination,
@@ -129,7 +129,7 @@ export async function qrPanel(title, initialUrl, makeSmart, card = {}) {
     await openShareCard(options);
   }
   const create = button(
-    "Create share card ↗",
+    "Create share card",
     guard(async () => {
       if (create.hasAttribute("aria-busy")) return;
       create.setAttribute("aria-busy", "true");

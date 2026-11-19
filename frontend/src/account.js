@@ -43,12 +43,7 @@ function accountIntro() {
     el(
       "div",
       { class: "library-preview", "aria-hidden": "true" },
-      el(
-        "div",
-        { class: "preview-caption" },
-        "THE GOOD STUFF, ALL TOGETHER",
-        symbol("arrow"),
-      ),
+      el("div", { class: "preview-caption" }, "THE GOOD STUFF, ALL TOGETHER"),
       el("div", { class: "preview-sheet preview-sheet-back" }),
       el(
         "div",
@@ -65,14 +60,12 @@ function accountIntro() {
           { class: "preview-item" },
           symbol("stack"),
           el("span", {}, "Your collections"),
-          symbol("arrow"),
         ),
         el(
           "div",
           { class: "preview-item" },
           symbol("link"),
           el("span", {}, "Links worth sharing"),
-          symbol("arrow"),
         ),
       ),
       el(
@@ -95,21 +88,20 @@ function guestOption() {
   return el(
     "div",
     { class: "guest-option" },
-    el("p", { class: "guest-option-label" }, "Just looking around?"),
+    el("p", { class: "guest-option-label" }, "Guest access"),
     el(
       "a",
       {
         href: "#discover",
-        class: "guest-link",
+        class: "button guest-link",
         "aria-describedby": "guest-option-note",
       },
       "Continue as guest",
-      el("span", { "aria-hidden": "true" }, "→"),
     ),
     el(
       "p",
       { id: "guest-option-note", class: "small-note" },
-      "No sign-in needed. Your saves stay on this device; import them into an account later.",
+      "Save apps on this device. Sign in later to bring them into your library.",
     ),
   );
 }
@@ -157,7 +149,6 @@ export async function accountPage(main, isCurrent, refresh) {
       { type: "submit", class: "button primary" },
       "Email me a sign-in link",
     );
-    send.append(symbol("arrow"));
     const form = el(
       "form",
       { class: "account-form signin-form" },
@@ -555,7 +546,7 @@ export async function profilePage(main, handle, isCurrent) {
               { class: "muted" },
               c.description || "Explore this collection",
             ),
-            el("span", { class: "text-link" }, "Explore collection ↗"),
+            el("span", { class: "text-link" }, "Explore collection"),
           ),
         ),
       ),

@@ -109,11 +109,11 @@ export function backupPanel(refresh) {
     el(
       "div",
       {},
-      el("h2", {}, "Your library. Take it with you."),
+      el("h2", {}, "Library backup"),
       el(
         "p",
         { class: "small-note" },
-        "Back up favorites and collection drafts before changing browsers or domains. This file does not transfer shared-link management or sign-in details.",
+        "Move favorites and collection drafts between browsers. Sign-in details and shared-link permissions stay private.",
       ),
     ),
     el(

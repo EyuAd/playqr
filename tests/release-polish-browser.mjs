@@ -74,7 +74,7 @@ try {
   assert.equal(await page.evaluate(() => document.activeElement.id), "main");
   await page.getByRole("link", { name: /Keyboard collection/ }).click();
   const publish = page.getByRole("button", {
-    name: "Publish collection ↗",
+    name: "Publish collection",
     exact: true,
   });
   await publish.click();

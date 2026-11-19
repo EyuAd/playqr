@@ -113,7 +113,7 @@ try {
       assert.equal(
         metric.iconHidden,
         "true",
-        `${label}: decorative arrow is hidden from assistive technology`,
+        `${label}: decorative icon is hidden from assistive technology`,
       );
       assert.ok(metric.textFits, `${label}: label is not clipped`);
       for (const child of [metric.label, metric.icon]) {
@@ -131,8 +131,8 @@ try {
         );
       }
       assert.ok(
-        metric.label.right <= metric.icon.x + 1,
-        `${label}: label and arrow do not overlap`,
+        metric.icon.right <= metric.label.x + 1,
+        `${label}: icon and label do not overlap`,
       );
     }
     assert.equal(
@@ -158,10 +158,8 @@ try {
       assert.equal(home.length, 3);
       for (const metric of home)
         assert.ok(
-          Math.abs(
-            metric.box.width - (metric.parentWidth - metric.parentPadding),
-          ) < 2,
-          `${name}: homepage CTAs fill their content column`,
+          metric.box.width <= metric.parentWidth - metric.parentPadding + 2,
+          `${name}: homepage buttons fit their content column`,
         );
       if (width > 760) {
         const bottoms = home.map((metric) => metric.box.bottom);

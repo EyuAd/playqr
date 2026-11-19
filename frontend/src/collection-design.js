@@ -8,6 +8,5 @@ export function collectionCover(value, compact = false) {
     el("span", { class: "cover-index", "aria-hidden": "true" }, "P/Q"),
     el("span", { class: "cover-lines", "aria-hidden": "true" }),
     el("span", { class: "cover-label" }, c.category),
-    el("span", { class: "cover-mark", "aria-hidden": "true" }, "↗"),
   );
 }

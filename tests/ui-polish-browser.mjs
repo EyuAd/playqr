@@ -270,7 +270,7 @@ try {
     "An older QR render must not overwrite the latest customization",
   );
 
-  const png = page.getByRole("button", { name: "↓ PNG", exact: true });
+  const png = page.getByRole("button", { name: "PNG", exact: true });
   await page.evaluate(() => {
     window.polish.failNext = true;
   });
@@ -289,7 +289,7 @@ try {
   await png.click();
   await page.evaluate(() => {
     const png = [...document.querySelectorAll(".qr-panel button")].find(
-      (control) => control.textContent === "↓ PNG",
+      (control) => control.textContent === "PNG",
     );
     png.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });

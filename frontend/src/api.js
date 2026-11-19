@@ -60,6 +60,7 @@ export async function request(
     if (error.name === "TypeError")
       throw new Error(
         "Could not reach the app service. Check your connection and try again.",
+        { cause: error },
       );
     throw error;
   } finally {
@@ -73,10 +74,23 @@ export async function search(query, signal, store = "android") {
   if (hit && Date.now() - hit.time < 300000) return hit.value;
   if (!["android", "ios", "all"].includes(store))
     throw new Error("Choose a valid app store.");
-  const android = () =>
-    request("/search?v=5&store=android&q=" + encodeURIComponent(query), {
-      signal,
-    });
+  async function android() {
+    const path = "/search?v=5&store=android&q=" + encodeURIComponent(query);
+    try {
+      return await request(path, { signal });
+    } catch (error) {
+      signal?.throwIfAborted();
+      if (
+        !navigator.onLine ||
+        !(
+          error.cause?.name === "TypeError" ||
+          [502, 503, 504].includes(error.status)
+        )
+      )
+        throw error;
+      return request(path, { signal });
+    }
+  }
   let value;
   if (store === "ios") value = await searchAppleBrowser(query, signal);
   else if (store === "android") value = await android();

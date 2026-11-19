@@ -206,7 +206,7 @@ try {
   });
   await live.reload({ waitUntil: "domcontentloaded" });
   await live
-    .getByRole("link", { name: "Open App Store ↗", exact: true })
+    .getByRole("link", { name: "Open App Store", exact: true })
     .waitFor();
   await live
     .locator(".app-detail img")

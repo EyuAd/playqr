@@ -386,7 +386,7 @@ main:focus {
   letter-spacing: 0.09em;
   z-index: 1;
 }
-.exchange-arrow {
+.exchange-pattern {
   position: absolute;
   right: -65px;
   top: -70px;
@@ -686,14 +686,14 @@ main:focus {
   height: 16px;
 }
 .action-link {
-  justify-content: space-between;
-  gap: 20px;
+  justify-content: center;
+  gap: 9px;
   width: fit-content;
   max-width: 100%;
   min-height: 46px;
   padding: 12px 16px;
   border-color: color-mix(in srgb, var(--ink) 12%, var(--line));
-  border-radius: 8px;
+  border-radius: 999px;
   font-size: 0.875rem;
   line-height: 1.4;
   text-align: left;
@@ -710,7 +710,6 @@ main:focus {
 }
 .action-link:hover .symbol {
   color: var(--accent);
-  transform: translateX(3px);
 }
 .action-link:active {
   background: var(--wash);
@@ -1013,7 +1012,7 @@ main:focus {
   margin-bottom: 24px;
 }
 .how .action-link {
-  width: 100%;
+  align-self: flex-start;
   margin-top: auto;
 }
 footer {
@@ -1282,26 +1281,38 @@ input[type="checkbox"] {
   margin: 3px 0;
 }
 .empty-state {
-  border: 1px dashed var(--line);
-  text-align: center;
-  padding: 48px 24px;
-  margin: 26px 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: clamp(20px, 3vw, 36px);
+  margin: 20px 0;
   background: var(--surface);
 }
 .empty-symbol {
-  display: block;
-  font-size: 2rem;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: var(--tint);
   color: var(--accent);
-  margin-bottom: 15px;
+}
+.empty-copy {
+  flex: 1 1 210px;
+  min-width: 0;
 }
 .empty-state h3 {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
+  margin: 0;
 }
 .empty-state p {
   font-size: 0.9rem;
   color: var(--muted);
-  max-width: 440px;
-  margin: 10px auto 20px;
+  max-width: 58ch;
+  margin: 5px 0 0;
 }
 .skeleton {
   border: 1px solid var(--line);
@@ -1960,25 +1971,24 @@ summary {
   margin: 0;
 }
 .guest-option-label {
-  font-size: 0.75rem;
-  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 600;
 }
 .guest-link {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 6px;
   min-height: 44px;
   font-size: 0.77rem;
   font-weight: 500;
 }
 .guest-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  border-color: var(--accent);
 }
 .guest-option .small-note {
   grid-column: 1 / -1;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   line-height: 1.55;
 }
 .account-workspace {
@@ -2282,10 +2292,11 @@ summary {
   }
   .guest-option {
     grid-template-columns: 1fr;
-    gap: 0;
+    gap: 10px;
   }
   .guest-link {
-    justify-content: flex-start;
+    grid-row: 3;
+    justify-content: center;
   }
   .account-intro h1 {
     font-size: clamp(2.4rem, 9vw, 2.9rem);
@@ -2462,7 +2473,8 @@ caption {
   padding: 26px;
   margin: 36px 0;
   border: 1px solid var(--line);
-  background: var(--tint);
+  border-radius: 16px;
+  background: linear-gradient(110deg, var(--surface) 52%, var(--tint));
 }
 .backup-panel h2 {
   font-size: 1.25rem;
@@ -2722,7 +2734,7 @@ caption {
   .ticket-number {
     font-size: 0.4rem;
   }
-  .exchange-arrow {
+  .exchange-pattern {
     width: 280px;
     height: 280px;
     top: -100px;
@@ -2861,6 +2873,14 @@ caption {
   }
 }
 @media (max-width: 480px) {
+  .backup-panel .detail-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .backup-panel .button {
+    padding-inline: 8px;
+  }
   .header,
   main,
   footer {

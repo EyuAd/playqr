@@ -52,7 +52,7 @@ try {
     /^https:\/\/play.google.com\/store\/apps\/details\?id=/,
   );
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "↓ SVG" }).click();
+  await page.getByRole("button", { name: "SVG" }).click();
   assert.match((await download).suggestedFilename(), /\.svg$/);
   await page.getByRole("button", { name: "+ Collection", exact: true }).click();
   await page

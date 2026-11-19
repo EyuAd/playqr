@@ -28,7 +28,7 @@ export async function analytics(main, code, isCurrent) {
   );
   const content = el("section");
   let exported = null;
-  const download = button("↓ Export CSV", () => {
+  const download = button("Export CSV", () => {
     if (!exported) return;
     const url = URL.createObjectURL(
       new Blob([analyticsCSV(exported.link, exported.rows, exported.range)], {

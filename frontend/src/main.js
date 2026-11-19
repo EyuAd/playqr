@@ -208,8 +208,7 @@ function discover() {
   const submit = el(
     "button",
     { type: "submit", class: "button primary" },
-    "Find app ",
-    el("span", { "aria-hidden": "true" }, "↗"),
+    "Find app",
   );
   const form = el(
     "form",
@@ -345,6 +344,22 @@ function discover() {
         ? "Search unavailable"
         : "You’re offline";
       results.replaceChildren(errorPanel(e.message, () => void run()));
+      if (!direct && discoveryState.store !== "ios") {
+        results
+          .querySelector(".empty-state")
+          .append(
+            el(
+              "a",
+              {
+                class: "button secondary",
+                href:
+                  "https://play.google.com/store/search?c=apps&q=" +
+                  encodeURIComponent(q),
+              },
+              "Search on Google Play",
+            ),
+          );
+      }
     } finally {
       if (ticket === sequence) {
         submit.disabled = false;
@@ -451,6 +466,7 @@ function discover() {
             ["Find an app", "Build a collection", "Open your library"][index],
             ["#discover", "#collections", "#dashboard"][index],
             {
+              iconName: ["search", "stack", "library"][index],
               ...(index === 0
                 ? {
                     onclick: (event) => {
@@ -502,7 +518,7 @@ async function details(id, version) {
     if (version !== routeVersion) return;
     rememberApp(app);
     main.replaceChildren(
-      el("a", { href: "#discover", class: "back-link" }, "← Back to discovery"),
+      el("a", { href: "#discover", class: "back-link" }, "Back to discovery"),
     );
     const info = el(
       "section",
@@ -545,7 +561,7 @@ async function details(id, version) {
             rel: "noopener",
             class: "button primary",
           },
-          "Open " + storeLabel(app.id) + " ↗",
+          "Open " + storeLabel(app.id),
         ),
         favoriteButton(
           app,
@@ -633,7 +649,7 @@ function collections() {
   if (!state.collections.length) {
     main.append(
       empty(
-        "Your next setup starts here",
+        "Your first collection",
         "Create a collection, then add apps from search results.",
       ),
     );
@@ -666,7 +682,7 @@ function collections() {
             "div",
             { class: "section-heading" },
             el("span", {}, `${c.apps.length} apps`),
-            el("span", {}, "Open collection ↗"),
+            el("span", {}, "Open collection"),
           ),
         ),
       ),
@@ -789,7 +805,7 @@ function editCollection(id) {
             { class: "collection-order" },
             ...[-1, 1].map((direction) => {
               const move = button(
-                direction === -1 ? "↑" : "↓",
+                direction === -1 ? "Up" : "Down",
                 () => {
                   const previous = c.apps;
                   c.apps = reorderApps(c.apps, index, direction);
@@ -854,7 +870,7 @@ function editCollection(id) {
   );
   let publishCollection;
   main.append(
-    el("a", { href: "#collections", class: "back-link" }, "← All collections"),
+    el("a", { href: "#collections", class: "back-link" }, "All collections"),
     heading("COLLECTION EDITOR", "Make it your own."),
     el(
       "div",
@@ -944,7 +960,7 @@ function editCollection(id) {
         "+ Find more apps",
       ),
       (publishCollection = button(
-        "Publish collection ↗",
+        "Publish collection",
         guard(async () => {
           if (publishCollection.disabled) return;
           if (!c.title.trim() || !c.apps.length)
@@ -970,7 +986,7 @@ function editCollection(id) {
               location.hash = "share/" + published.code;
           } finally {
             publishCollection.disabled = false;
-            publishCollection.textContent = "Publish collection ↗";
+            publishCollection.textContent = "Publish collection";
             publishCollection.removeAttribute("aria-busy");
           }
         }),
@@ -1095,6 +1111,7 @@ async function dashboard(version) {
       actionLink(
         session ? "Account & sync" : "Use PlayQR across devices",
         "#account",
+        { iconName: "devices" },
       ),
     ),
   );
@@ -1114,8 +1131,10 @@ async function dashboard(version) {
     state.favorites.length
       ? cards(state.favorites)
       : empty(
-          "Keep your favorites close",
-          "Tap Save on any app to find it here.",
+          "No saved apps yet",
+          "Save an app from Discover to keep it in your library.",
+          actionLink("Browse apps", "#discover", { iconName: "search" }),
+          "bookmark",
         ),
   );
   if (!session) main.append(backupPanel(() => void route()));

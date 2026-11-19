@@ -20,9 +20,8 @@ export function appPassport() {
       "div",
       { class: "exchange-meta" },
       el("span", {}, "THE APP EXCHANGE"),
-      symbol("arrow"),
     ),
-    symbol("arrow", "exchange-arrow"),
+    symbol("scan", "exchange-pattern"),
     el(
       "div",
       { class: "passport" },
