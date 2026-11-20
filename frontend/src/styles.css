@@ -854,10 +854,9 @@ main:focus {
 .how-step {
   display: flex;
   flex-direction: column;
-  padding: 30px 28px 30px 0;
+  padding: 30px 28px;
 }
 .how-step + .how-step {
-  padding-left: 28px;
   border-left: 1px solid var(--line);
 }
 .step-art {
@@ -1012,7 +1011,7 @@ main:focus {
   margin-bottom: 24px;
 }
 .how .action-link {
-  align-self: flex-start;
+  align-self: center;
   margin-top: auto;
 }
 footer {
